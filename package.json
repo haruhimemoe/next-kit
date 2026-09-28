@@ -87,15 +87,33 @@
     "zod": "^4.6.5"
   },
   "peerDependenciesMeta": {
-    "@haruhimemoe/osu": { "optional": true },
-    "better-auth": { "optional": true },
-    "mongodb": { "optional": true },
-    "mongodb-memory-server": { "optional": true },
-    "mongoose": { "optional": true },
-    "msw": { "optional": true },
-    "next": { "optional": true },
-    "react": { "optional": true },
-    "vitest": { "optional": true }
+    "@haruhimemoe/osu": {
+      "optional": true
+    },
+    "better-auth": {
+      "optional": true
+    },
+    "mongodb": {
+      "optional": true
+    },
+    "mongodb-memory-server": {
+      "optional": true
+    },
+    "mongoose": {
+      "optional": true
+    },
+    "msw": {
+      "optional": true
+    },
+    "next": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "vitest": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
