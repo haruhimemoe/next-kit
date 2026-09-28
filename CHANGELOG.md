@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-09-28
+
+### Fixed
+
+- The `@haruhimemoe/osu` peer range also allows `^0.4.0`, so apps on osu 0.4.0 install without npm's ERESOLVE.
+
 ## [0.2.0] - 2026-09-28
 
 ### Added
@@ -29,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `@haruhimemoe/next-kit/auth-react`: `createSignedInMarker`, `createAccountStore`, `useAccount`, `createAccount`, `RestoreSignedIn` and `osuSignIn`.
 - `@haruhimemoe/next-kit/testing`: `startMemoryMongo`, `setupTestDb`, `setupMsw` and the fake osu! app env.
 
-[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.2.0...HEAD
+[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/haruhimemoe/next-kit/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/haruhimemoe/next-kit/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/haruhimemoe/next-kit/releases/tag/v0.1.0

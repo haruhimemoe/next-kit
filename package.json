@@ -1,6 +1,6 @@
 {
   "name": "@haruhimemoe/next-kit",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "The Next.js server plumbing packs.haruhime.moe and pools.haruhime.moe share: JSON route helpers, rate limits and budgets in MongoDB, bearer machine auth, zod env parsing, a connect-once MongoDB client with safe index builds, better-auth with osu! sign-in, and the signed-in marker and account store for the browser.",
   "keywords": [
     "nextjs",
@@ -75,7 +75,7 @@
     "check:consumer": "bun run build && node scripts/check-consumer.mjs"
   },
   "peerDependencies": {
-    "@haruhimemoe/osu": "^0.2.0 || ^0.3.0",
+    "@haruhimemoe/osu": "^0.2.0 || ^0.3.0 || ^0.4.0",
     "@haruhimemoe/ui": "^0.5.0",
     "better-auth": "^1.7.5",
     "mongodb": "^7.6.0",
