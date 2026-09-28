@@ -14,7 +14,7 @@
  * @modified Mon Sep 28, 2026
  */
 
-import { betterAuth } from "better-auth";
+import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { createAuthMiddleware } from "better-auth/api";
 import { genericOAuth } from "better-auth/plugins";
@@ -22,6 +22,12 @@ import type { Db, MongoClient } from "mongodb";
 import { markerMaxAge } from "../auth-react/marker.js";
 import { DEFAULT_SIGN_IN_PATH } from "../server/safe-next.js";
 import { OSU_PROVIDER_ID, OSU_USER_FIELDS, osuProvider, withoutTokens } from "./osu.js";
+
+/** Extra fields on user rows, as better-auth's user.additionalFields takes them. */
+export type UserFields = NonNullable<NonNullable<BetterAuthOptions["user"]>["additionalFields"]>;
+
+/** No extra user fields. */
+type NoFields = Record<never, never>;
 
 /** A database row as a hook sees it. */
 export type AuthRow = Record<string, unknown>;
@@ -39,7 +45,7 @@ export type OsuAuthHooks = {
 };
 
 /** createOsuAuth's options. */
-export type OsuAuthOptions = {
+export type OsuAuthOptions<F extends UserFields = NoFields> = {
   /** The osu! OAuth app. */
   clientId: string;
   clientSecret: string;
@@ -54,6 +60,8 @@ export type OsuAuthOptions = {
   /** Where errors with no page to return to land (default /signin). */
   signInPath?: string;
   hooks?: OsuAuthHooks;
+  /** Fields of the app's own on user rows (packs: `system`, set only by the server). */
+  userFields?: F;
 };
 
 /** Runs a guard: false refuses the write, anything else lets it through unchanged. */
@@ -64,11 +72,11 @@ const guard =
 
 /**
  * @function createOsuAuth
- * @param options {OsuAuthOptions} osu! credentials, better-auth URL and secret, the database,
- *        the marker cookie, the sign-in page and the hooks
+ * @param options {OsuAuthOptions<F>} osu! credentials, better-auth URL and secret, the
+ *        database, the marker cookie, the sign-in page, the hooks and extra user fields
  * @returns the better-auth instance (use `typeof` it with inferAdditionalFields on the client)
  */
-export const createOsuAuth = ({
+export const createOsuAuth = <F extends UserFields = NoFields>({
   clientId,
   clientSecret,
   baseURL,
@@ -78,7 +86,8 @@ export const createOsuAuth = ({
   markerCookie,
   signInPath = DEFAULT_SIGN_IN_PATH,
   hooks = {},
-}: OsuAuthOptions) => {
+  userFields,
+}: OsuAuthOptions<F>) => {
   const markerOptions = {
     path: "/",
     sameSite: "lax" as const,
@@ -100,7 +109,9 @@ export const createOsuAuth = ({
       accountLinking: { trustedProviders: [OSU_PROVIDER_ID], requireLocalEmailVerified: false },
     },
     onAPIError: { errorURL: new URL(signInPath, baseURL).toString() },
-    user: { additionalFields: OSU_USER_FIELDS },
+    user: {
+      additionalFields: { ...OSU_USER_FIELDS, ...userFields } as typeof OSU_USER_FIELDS & F,
+    },
     databaseHooks: {
       user: {
         create: {
@@ -148,5 +159,5 @@ export const createOsuAuth = ({
   });
 };
 
-/** The instance createOsuAuth builds. */
-export type OsuAuth = ReturnType<typeof createOsuAuth>;
+/** The instance createOsuAuth builds (with no extra user fields). */
+export type OsuAuth = ReturnType<typeof createOsuAuth<NoFields>>;

@@ -14,6 +14,7 @@ export {
   type OsuAuth,
   type OsuAuthHooks,
   type OsuAuthOptions,
+  type UserFields,
 } from "./create.js";
 export { AUTH_INDEX_SPECS, AUTH_INDEXES } from "./indexes.js";
 export {
