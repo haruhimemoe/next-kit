@@ -1,0 +1,40 @@
+# @haruhimemoe/next-kit
+
+> The Next.js server plumbing packs.haruhime.moe and pools.haruhime.moe share, as a TypeScript package with six subpath entry points and no root. `server`: JSON error answers, a JSON body parser with a size cap, a cross-site guard, the client IP, fixed-window rate limits and call budgets in MongoDB, bearer machine auth, `safeNextPath` and security.txt. `env`: zod env parsing with SKIP_ENV_VALIDATION and a production placeholder guard. `mongo`: one MongoClient per process with Mongoose on it, and index builds that never throw. `auth`: better-auth with osu! sign-in (no stored osu! tokens) and the indexes its collections need. `auth-react`: the signed-in marker cookie, `useAccount` and `RestoreSignedIn`. `testing`: an in-memory MongoDB, msw and a fake env for Vitest. zod 4.6.5 or later in 4.x is a peer; the other peers are optional per subpath.
+
+Every name, path, limit and message comes from the caller. Where packs and pools had differing copies, the package keeps pools' behavior; the README's Migration section lists what changes for packs.
+
+## Docs
+
+- [README](https://github.com/haruhimemoe/next-kit#readme): What the package is, install, examples and the full API.
+- [Install](https://github.com/haruhimemoe/next-kit#install): The install command and which peers each subpath needs.
+- [Use](https://github.com/haruhimemoe/next-kit#use): Wiring env, MongoDB, rate limits and sign-in in an app, and a route handler.
+- [API: server](https://github.com/haruhimemoe/next-kit#server): `jsonError`, `parseJsonBody`, `parseIdList`, `refuseCrossSite`, `clientIp`, `createRateLimiter`, `createBudget`, `refuseWithoutBearer`, `safeNextPath`, `buildSecurityTxt`.
+- [API: env](https://github.com/haruhimemoe/next-kit#env): `createServerEnv`, the osu! app variables, and the per-call readers.
+- [API: mongo](https://github.com/haruhimemoe/next-kit#mongo): `createMongo`, `ensureIndexes`, `ttlIndex`, `defineCollections`.
+- [API: auth](https://github.com/haruhimemoe/next-kit#auth): `createOsuAuth`, its hooks, `AUTH_INDEX_SPECS`, `getOsuUser`.
+- [API: auth-react](https://github.com/haruhimemoe/next-kit#auth-react): `createSignedInMarker`, `createAccount`, `useAccount`, `RestoreSignedIn`, `osuSignIn`.
+- [API: testing](https://github.com/haruhimemoe/next-kit#testing): `startMemoryMongo`, `setupTestDb`, `setupMsw`, the fake env.
+- [Migration](https://github.com/haruhimemoe/next-kit#migration): What changes for packs.haruhime.moe and pools.haruhime.moe when they drop their copies.
+- [Compatibility](https://github.com/haruhimemoe/next-kit#compatibility): Runtimes, and what the browser entry point loads.
+
+## Package
+
+- [npm](https://www.npmjs.com/package/@haruhimemoe/next-kit): `@haruhimemoe/next-kit` on the npm registry.
+- [Source](https://github.com/haruhimemoe/next-kit): The GitHub repository.
+- [Entry points](https://github.com/haruhimemoe/next-kit/tree/main/src): One folder per subpath, each with an `index.ts`.
+
+## Related
+
+- [packs.haruhime.moe](https://packs.haruhime.moe): Builds osu! mappool packs and shares them with pack keys, using this package. It has its own [llms.txt](https://packs.haruhime.moe/llms.txt).
+- [pools.haruhime.moe](https://pools.haruhime.moe): Searches past osu! tournament mappools and checks a pool against the content rules, using this package. In beta. It has its own [llms.txt](https://pools.haruhime.moe/llms.txt).
+- [@haruhimemoe/osu](https://github.com/haruhimemoe/osu): osu! API v2 shapes and client; `auth` maps the osu! profile with its `toOsuUser`.
+- [@haruhimemoe/pool](https://github.com/haruhimemoe/pool): osu! tournament mappools as data, and the packs and pools service contract.
+- [haruhime.moe](https://www.haruhime.moe): The haruhime.moe tools.
+
+## Optional
+
+- [CHANGELOG](https://github.com/haruhimemoe/next-kit/blob/main/CHANGELOG.md): Release history.
+- [CONTRIBUTING](https://github.com/haruhimemoe/next-kit/blob/main/CONTRIBUTING.md): Setup, checks and how the tests run.
+- [AGENTS.md](https://github.com/haruhimemoe/next-kit/blob/main/AGENTS.md): Conventions and invariants for AI agents changing this repo.
+- [SECURITY](https://github.com/haruhimemoe/next-kit/blob/main/SECURITY.md): How to report a vulnerability.
