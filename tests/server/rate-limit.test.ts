@@ -9,7 +9,9 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
+import { ensureIndexes } from "../../src/mongo/index.js";
 import {
+  counterTtlIndex,
   createRateLimiter,
   RATE_LIMITS_COLLECTION,
   rateLimitHeaders,
@@ -72,6 +74,18 @@ describe("hit", () => {
     await Promise.all(Array.from({ length: 8 }, () => limiter.hit(rule, "r")));
     const doc = await db().collection(RATE_LIMITS_COLLECTION).findOne({});
     expect(doc?.count).toBe(8);
+  });
+});
+
+describe("counterTtlIndex", () => {
+  it("expires counters at expiresAt, in any collection", async () => {
+    expect(counterTtlIndex("limits").collection).toBe("limits");
+    expect(await ensureIndexes(db(), [counterTtlIndex()])).toEqual({
+      built: ["expiresAt_1"],
+      skipped: [],
+    });
+    const indexes = await db().collection(RATE_LIMITS_COLLECTION).indexes();
+    expect(indexes.find((index) => index.name === "expiresAt_1")?.expireAfterSeconds).toBe(0);
   });
 });
 

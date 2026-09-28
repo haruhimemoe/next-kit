@@ -4,7 +4,7 @@
  *       scope, subject and window (`{scope}:{subject}:{windowStartSeconds}`), bumped with one
  *       findOneAndUpdate upsert $inc, removed by the TTL index on expiresAt a minute after its
  *       window ends. Before, each app computed the window three times (rate limits and two osu!
- *       budget windows).
+ *       budget windows). counterTtlIndex is the index that removes them.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
  * @modified Mon Sep 28, 2026
@@ -12,6 +12,7 @@
 
 import type { Collection, Db } from "mongodb";
 import { isDuplicateKeyError } from "../mongo/duplicate.js";
+import { type IndexSpec, ttlIndex } from "../mongo/indexes.js";
 
 /** A fixed-window limit: at most `limit` hits per `windowSeconds`, counted under `scope`. */
 export type RateLimitRule = { scope: string; limit: number; windowSeconds: number };
@@ -21,6 +22,15 @@ export const RATE_LIMITS_COLLECTION = "rate_limits";
 
 /** MongoDB's TTL monitor runs about once a minute; the grace keeps a live window's counter. */
 export const COUNTER_GRACE_MS = 60_000;
+
+/**
+ * @function counterTtlIndex
+ * @param collection {string} the counters' collection (default RATE_LIMITS_COLLECTION)
+ * @returns {IndexSpec} the TTL index on expiresAt that removes spent counters (pass it to
+ *          ensureIndexes from @haruhimemoe/next-kit/mongo)
+ */
+export const counterTtlIndex = (collection: string = RATE_LIMITS_COLLECTION): IndexSpec =>
+  ttlIndex(collection, "expiresAt");
 
 /** One counter document. */
 export type CounterDoc = { _id: string; count: number; expiresAt: Date };

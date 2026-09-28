@@ -24,6 +24,7 @@ export {
   COUNTER_GRACE_MS,
   type CounterDoc,
   type CounterStore,
+  counterTtlIndex,
   RATE_LIMITS_COLLECTION,
   type RateLimitRule,
   type RateLimitWindow,
