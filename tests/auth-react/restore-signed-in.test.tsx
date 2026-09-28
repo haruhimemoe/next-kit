@@ -13,6 +13,7 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  createAccount,
   createSignedInMarker,
   OSU_PROVIDER_ID,
   osuSignIn,
@@ -69,6 +70,17 @@ describe("RestoreSignedIn", () => {
     await Promise.resolve();
     expect(slow.recheck).toHaveBeenCalledOnce();
     expect(replace).not.toHaveBeenCalled();
+  });
+});
+
+describe("createAccount's RestoreSignedIn", () => {
+  it("binds the page-wide store and the app's marker", async () => {
+    const getSession = vi.fn(async () => ({ data: null }));
+    const kit = createAccount({ getSession }, createSignedInMarker("bound-signed-in"));
+    render(<kit.RestoreSignedIn next="/me" />);
+    expect(screen.getByText("Signing you in…")).toBeTruthy();
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/me"));
+    expect(getSession).toHaveBeenCalledOnce();
   });
 });
 

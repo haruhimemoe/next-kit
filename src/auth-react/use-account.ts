@@ -10,7 +10,7 @@
 
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { createElement, type ReactNode, useSyncExternalStore } from "react";
 import {
   type Account,
   type AccountStore,
@@ -19,6 +19,7 @@ import {
   type SessionData,
 } from "./account-store.js";
 import type { SignedInMarker } from "./marker.js";
+import { RestoreSignedIn } from "./RestoreSignedIn.js";
 
 /** The part of a better-auth client the store calls. */
 export type SessionClient = {
@@ -44,18 +45,24 @@ export const sessionFetcher = (client: SessionClient) => async (): Promise<Sessi
 export const useAccount = (store: AccountStore): Account =>
   useSyncExternalStore(store.subscribe, store.getSnapshot, () => LOADING);
 
-/** What createAccount returns: the store, and the hook and sign-out bound to it. */
+/** RestoreSignedIn with the store and marker already bound: what a server page can render. */
+export type BoundRestoreProps = { next?: string; pending?: ReactNode };
+
+/** What createAccount returns: the store, and the hook, sign-out and component bound to it. */
 export type AccountKit = {
   store: AccountStore;
   useAccount: () => Account;
   markSignedOut: () => void;
+  RestoreSignedIn: (props: BoundRestoreProps) => ReactNode;
 };
 
 /**
  * @function createAccount
  * @param client {SessionClient} the app's better-auth client
  * @param marker {SignedInMarker} the app's signed-in marker
- * @returns {AccountKit} a page-wide store reading document.cookie, with its hook and sign-out
+ * @returns {AccountKit} a page-wide store reading document.cookie, with its hook, sign-out and
+ *          RestoreSignedIn (export them from the app's own "use client" module, so server pages
+ *          render <RestoreSignedIn next={next} /> with only serializable props)
  */
 export const createAccount = (client: SessionClient, marker: SignedInMarker): AccountKit => {
   const store = createAccountStore({
@@ -68,5 +75,7 @@ export const createAccount = (client: SessionClient, marker: SignedInMarker): Ac
     store,
     useAccount: () => useAccount(store),
     markSignedOut: () => store.markSignedOut(),
+    RestoreSignedIn: (props) =>
+      createElement(RestoreSignedIn, { ...props, store, hasMarker: marker.has }),
   };
 };

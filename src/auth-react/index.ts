@@ -29,6 +29,7 @@ export { RestoreSignedIn, type RestoreSignedInProps } from "./RestoreSignedIn.js
 export { type OsuSignIn, osuSignIn } from "./sign-in.js";
 export {
   type AccountKit,
+  type BoundRestoreProps,
   createAccount,
   type SessionClient,
   sessionFetcher,
