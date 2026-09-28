@@ -1,0 +1,15 @@
+name: Feature request
+description: A new helper, rule or export
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Which app needs it, and what it hand-rolls today.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like to happen?

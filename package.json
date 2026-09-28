@@ -1,0 +1,122 @@
+{
+  "name": "@haruhimemoe/next-kit",
+  "version": "0.1.0",
+  "description": "The Next.js server plumbing packs.haruhime.moe and pools.haruhime.moe share: JSON route helpers, rate limits and budgets in MongoDB, bearer machine auth, zod env parsing, a connect-once MongoDB client with safe index builds, better-auth with osu! sign-in, and the signed-in marker and account store for the browser.",
+  "keywords": [
+    "nextjs",
+    "next.js",
+    "better-auth",
+    "osu",
+    "osu!",
+    "mongodb",
+    "rate limit",
+    "zod"
+  ],
+  "homepage": "https://github.com/haruhimemoe/next-kit#readme",
+  "bugs": "https://github.com/haruhimemoe/next-kit/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/haruhimemoe/next-kit.git"
+  },
+  "license": "MIT",
+  "author": "David (https://dvh.sh)",
+  "type": "module",
+  "exports": {
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "default": "./dist/server/index.js"
+    },
+    "./env": {
+      "types": "./dist/env/index.d.ts",
+      "default": "./dist/env/index.js"
+    },
+    "./mongo": {
+      "types": "./dist/mongo/index.d.ts",
+      "default": "./dist/mongo/index.js"
+    },
+    "./auth": {
+      "types": "./dist/auth/index.d.ts",
+      "default": "./dist/auth/index.js"
+    },
+    "./auth-react": {
+      "types": "./dist/auth-react/index.d.ts",
+      "default": "./dist/auth-react/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "default": "./dist/testing/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22.12"
+  },
+  "packageManager": "bun@1.4.2",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "bun run clean && tsc -p tsconfig.build.json",
+    "check": "biome check .",
+    "check:fix": "biome check --write .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
+    "test:dist": "bun run build && node scripts/smoke.mjs",
+    "prepublishOnly": "bun run check && bun run typecheck && bun run test && bun run test:dist",
+    "check:consumer": "bun run build && node scripts/check-consumer.mjs"
+  },
+  "peerDependencies": {
+    "@haruhimemoe/osu": "^0.2.0 || ^0.3.0",
+    "better-auth": "^1.7.5",
+    "mongodb": "^7.6.0",
+    "mongodb-memory-server": "^11.3.0",
+    "mongoose": "^9.10.2",
+    "msw": "^2.15.0",
+    "next": "^16.3.6",
+    "react": "^19.3.0",
+    "vitest": "^5.0.1",
+    "zod": "^4.6.5"
+  },
+  "peerDependenciesMeta": {
+    "@haruhimemoe/osu": { "optional": true },
+    "better-auth": { "optional": true },
+    "mongodb": { "optional": true },
+    "mongodb-memory-server": { "optional": true },
+    "mongoose": { "optional": true },
+    "msw": { "optional": true },
+    "next": { "optional": true },
+    "react": { "optional": true },
+    "vitest": { "optional": true }
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.14",
+    "@haruhimemoe/osu": "0.2.0",
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/react": "16.3.3",
+    "@types/node": "26.6.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitest/coverage-v8": "5.0.1",
+    "better-auth": "1.7.5",
+    "jsdom": "30.1.1",
+    "mongodb": "7.6.0",
+    "mongodb-memory-server": "11.3.0",
+    "mongoose": "9.10.2",
+    "msw": "2.15.0",
+    "next": "16.3.6",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "typescript": "7.0.2",
+    "vitest": "5.0.1",
+    "zod": "4.6.5"
+  }
+}

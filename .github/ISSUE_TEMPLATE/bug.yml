@@ -1,0 +1,31 @@
+name: Bug report
+description: A helper answers wrong, a limit counts wrong, sign-in misbehaves, or a type is off
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The smallest code that shows it, with the request, env values (no secrets) or cookie you used.
+      render: ts
+    validations:
+      required: true
+  - type: input
+    id: subpath
+    attributes:
+      label: Entry point
+      placeholder: "@haruhimemoe/next-kit/server"
+  - type: input
+    id: versions
+    attributes:
+      label: Versions and runtime
+      placeholder: "@haruhimemoe/next-kit 0.1.0, next 16.3.6, better-auth 1.7.5, Node 24"
+    validations:
+      required: true
