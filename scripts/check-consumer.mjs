@@ -38,7 +38,7 @@ const run = (command, args, cwd = dir) =>
 
 const CONSUMER = `import { z } from "zod";
 import { createOsuAuth, getOsuUser, type OsuAuth, type OsuSessionUser } from "@haruhimemoe/next-kit/auth";
-import { createAccountStore, createSignedInMarker, osuSignIn, safeNextPath, type Account } from "@haruhimemoe/next-kit/auth-react";
+import { createAccountStore, createAuthComponents, createSignedInMarker, osuAvatarSrc, osuSignIn, safeNextPath, type Account, type BoundAccountMenuProps } from "@haruhimemoe/next-kit/auth-react";
 import { createServerEnv, EnvError, OSU_APP_PLACEHOLDERS, OSU_APP_SECRET_KEYS, osuAppEnvSchema } from "@haruhimemoe/next-kit/env";
 import { createMongo, defineCollections, ensureIndexes, type IndexSpec } from "@haruhimemoe/next-kit/mongo";
 import { createRateLimiter, parseJsonBody, parseIdList, refuseCrossSite, type RateLimitRule } from "@haruhimemoe/next-kit/server";
@@ -68,8 +68,11 @@ if (refuseCrossSite(new Request("http://x/"), { siteUrl: "http://x", siteTitle: 
 if (safeNextPath("//x", { fallback: "/me" }) !== "/me") throw new Error("next");
 if (!createSignedInMarker("m").has("m=1")) throw new Error("marker");
 if (osuSignIn("/me").provider !== "osu") throw new Error("sign-in");
+if (osuAvatarSrc("/x") !== "https://osu.ppy.sh/x") throw new Error("avatar");
+const authUi = createAuthComponents({ signIn: { social: async () => ({ data: null, error: null }) }, signOut: async () => ({}) }, { useAccount: () => account, markSignedOut: () => {} });
+const menuProps: BoundAccountMenuProps = { items: [{ href: "/me", label: "Me" }] };
 if (!(new EnvError("x") instanceof Error)) throw new Error("env error");
-void [clientId, index, rule, limiter, osuId, user, account, store, options, ensureIndexes, createOsuAuth, getOsuUser];
+void [authUi, menuProps, clientId, index, rule, limiter, osuId, user, account, store, options, ensureIndexes, createOsuAuth, getOsuUser];
 type _ = typeof setupTestDb;
 console.log("consumer: ok");
 `;

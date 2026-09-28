@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-28
+
+### Added
+
+- `@haruhimemoe/next-kit/auth-react`: the account components, styled with `@haruhimemoe/ui` (a new optional peer, ^0.5.0). `SignInWithOsu`, `SignOutButton`, `AccountMenu` (ui's HeaderMenu with the app's links) and `DeleteAccountForm` (type the username, then one DELETE), with `createAuthComponents(authClient, kit)` to bind the app's client and account kit. Moved from packs, pools and bb, which each had a copy.
+- `osuAvatarSrc` and `OSU_AVATAR_HOSTS`: an osu! avatar URL only from a.ppy.sh or osu.ppy.sh. Moved from pools and bb.
+- `signInErrorMessage`: reads better-auth's flat or nested error message, as packs did.
+
+### Changed
+
+- `auth-react` now also loads `@haruhimemoe/ui` at runtime.
+
 ## [0.1.0] - 2026-09-28
 
 ### Added
@@ -17,5 +29,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `@haruhimemoe/next-kit/auth-react`: `createSignedInMarker`, `createAccountStore`, `useAccount`, `createAccount`, `RestoreSignedIn` and `osuSignIn`.
 - `@haruhimemoe/next-kit/testing`: `startMemoryMongo`, `setupTestDb`, `setupMsw` and the fake osu! app env.
 
-[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.1.0...HEAD
+[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/haruhimemoe/next-kit/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/haruhimemoe/next-kit/releases/tag/v0.1.0

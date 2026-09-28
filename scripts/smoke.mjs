@@ -48,7 +48,17 @@ assert.equal(typeof auth.createOsuAuth, "function");
 
 assert.equal(authReact.createSignedInMarker("x").has("x=1"), true);
 assert.equal(authReact.osuSignIn("/me").errorCallbackURL, "/signin?next=%2Fme");
-for (const file of ["RestoreSignedIn.js", "use-account.js"]) {
+assert.equal(authReact.osuAvatarSrc("http://a.ppy.sh/2"), "https://a.ppy.sh/2");
+assert.equal(typeof authReact.createAuthComponents, "function");
+for (const file of [
+  "RestoreSignedIn.js",
+  "use-account.js",
+  "SignInWithOsu.js",
+  "SignOutButton.js",
+  "AccountMenu.js",
+  "DeleteAccountForm.js",
+  "auth-components.js",
+]) {
   const text = readFileSync(new URL(`../dist/auth-react/${file}`, import.meta.url), "utf8");
   assert.match(text, /^(\/\*[\s\S]*?\*\/\s*)?"use client";/, `${file} keeps "use client"`);
 }

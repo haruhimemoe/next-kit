@@ -7,6 +7,7 @@
       "devDependencies": {
         "@biomejs/biome": "2.5.14",
         "@haruhimemoe/osu": "0.2.0",
+        "@haruhimemoe/ui": "0.5.0",
         "@testing-library/dom": "10.4.2",
         "@testing-library/react": "16.3.3",
         "@types/node": "26.6.2",
@@ -26,6 +27,31 @@
         "vitest": "5.0.1",
         "zod": "4.6.5",
       },
+      "peerDependencies": {
+        "@haruhimemoe/osu": "^0.2.0 || ^0.3.0",
+        "@haruhimemoe/ui": "^0.5.0",
+        "better-auth": "^1.7.5",
+        "mongodb": "^7.6.0",
+        "mongodb-memory-server": "^11.3.0",
+        "mongoose": "^9.10.2",
+        "msw": "^2.15.0",
+        "next": "^16.3.6",
+        "react": "^19.3.0",
+        "vitest": "^5.0.1",
+        "zod": "^4.6.5",
+      },
+      "optionalPeers": [
+        "@haruhimemoe/osu",
+        "@haruhimemoe/ui",
+        "better-auth",
+        "mongodb",
+        "mongodb-memory-server",
+        "mongoose",
+        "msw",
+        "next",
+        "react",
+        "vitest",
+      ],
     },
   },
   "packages": {
@@ -102,6 +128,8 @@
     "@exodus/bytes": ["@exodus/bytes@1.16.0", "", { "peerDependencies": { "@noble/hashes": "^1.8.0 || ^2.0.0" }, "optionalPeers": ["@noble/hashes"] }, "sha512-IcpW84uEn3N7ETtNZMlxKhfl6Pec8rUNGOTBtWbK1FKhJxIFAptZyVrvVRVBimAJxJCgc3PxepxkdWWG4DVzfA=="],
 
     "@haruhimemoe/osu": ["@haruhimemoe/osu@0.2.0", "", { "peerDependencies": { "zod": "^4.0.16" } }, "sha512-m7H/a2msQRteu+L4oSmte3VvQRzu2PgncGBh2/dbtTcpzPNg7Qq8YzJir/UiWHHesF1ppfGgK5P4Mmxb2mWGZA=="],
+
+    "@haruhimemoe/ui": ["@haruhimemoe/ui@0.5.0", "", { "dependencies": { "tailwind-merge": "3.7.0" }, "peerDependencies": { "next": ">=16.0.0 <17", "react": ">=19.0.0", "react-dom": ">=19.0.0", "tailwindcss": ">=4.1.0 <5" } }, "sha512-1j580cNuAyaoUZ8iZ+2zJKUDLbG1BxZvB4UzrWRlxzoTOVfrzgLpyan7qDW2zR7/U2muShSq0yOgOefw4mjnXQ=="],
 
     "@img/colour": ["@img/colour@1.1.0", "", {}, "sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ=="],
 
@@ -604,6 +632,10 @@
     "styled-jsx": ["styled-jsx@5.1.6", "", { "dependencies": { "client-only": "0.0.1" }, "peerDependencies": { "react": ">= 16.8.0 || 17.x.x || ^18.0.0-0 || ^19.0.0-0" } }, "sha512-qSVyDTeMotdvQYoHWLNGwRFJHC+i+ZvdBRYosOFgC+Wg1vx4frN2/RG/NA7SYqqvKNLf39P2LSRA2pu6n0XYZA=="],
 
     "tagged-tag": ["tagged-tag@1.0.0", "", {}, "sha512-yEFYrVhod+hdNyx7g5Bnkkb0G6si8HJurOoOEgC8B/O0uXLHlaey/65KRv6cuWBNhBgHKAROVpc7QyYqE5gFng=="],
+
+    "tailwind-merge": ["tailwind-merge@3.7.0", "", {}, "sha512-XPPUyAc+cvspz3lHTcR/QgPfW2A0lv/xQNIjX3HGhLR+Nq2lHaLq5MtTesHn8GUr3W3DguT2KT5x3NVgRtYwmA=="],
+
+    "tailwindcss": ["tailwindcss@4.3.3", "", {}, "sha512-gOhV3P7ufE62QDGg1zVaTgCR+EtPv92k2nIhVcVKcLmxT1sUBsQGhnZj175j+MqRt4zLF7ic+sCYjfhxMxj7YQ=="],
 
     "tar-stream": ["tar-stream@3.2.1", "", { "dependencies": { "b4a": "^1.6.4", "bare-fs": "^4.5.5", "fast-fifo": "^1.2.0", "streamx": "^2.15.0" } }, "sha512-nqsEO8zLZJvrOMdEwkA0QdCLFbetHMn95Zqu4fKwX+hkaTWJPZZOrxx/PwtxoK0MMGQmBQNRW3CPs8IFYQz4cQ=="],
 

@@ -8,7 +8,7 @@ The Next.js server plumbing the haruhime.moe tools share. [packs.haruhime.moe](h
 - **`/env`:** zod env parsing that runs on first use, with SKIP_ENV_VALIDATION for CI and a guard that refuses placeholder secrets on a production server.
 - **`/mongo`:** one MongoClient per process with Mongoose on the same client, index builds that never take the site down, and frozen collection names.
 - **`/auth`:** better-auth with osu! as the only way in, the indexes its collections need, and reading the caller.
-- **`/auth-react`:** the browser half: the signed-in marker cookie, the account store and `useAccount`, and `RestoreSignedIn`.
+- **`/auth-react`:** the browser half: the signed-in marker cookie, the account store and `useAccount`, `RestoreSignedIn`, and the account components (Sign in with osu!, Sign out, the header's account menu, Delete my account) styled with `@haruhimemoe/ui`.
 - **`/testing`:** Vitest helpers: one in-memory MongoDB per run, an msw server that refuses unhandled requests, and a fake env.
 
 Every name, path, limit and message comes from the caller. There is no root entry point; import a subpath.
@@ -28,7 +28,7 @@ bun add @haruhimemoe/next-kit zod
 | `env` | nothing else |
 | `mongo` | `mongodb` ^7.6.0, `mongoose` ^9.10.2 |
 | `auth` | `better-auth` ^1.7.5, `mongodb`, `@haruhimemoe/osu` 0.2 or 0.3 |
-| `auth-react` | `react` ^19.3.0, `next` ^16.3.6 |
+| `auth-react` | `react` ^19.3.0, `next` ^16.3.6, `@haruhimemoe/ui` ^0.5.0 (with its theme set up) |
 | `testing` | `vitest` ^5.0.1, `msw` ^2.15.0, `mongodb-memory-server` ^11.3.0 |
 
 ## Use
@@ -103,7 +103,15 @@ export const getAuth = () => {
 import { createAccount, createSignedInMarker } from "@haruhimemoe/next-kit/auth-react";
 
 export const marker = createSignedInMarker("pools-signed-in");
-export const { store, useAccount, markSignedOut, RestoreSignedIn } = createAccount(authClient, marker);
+const kit = createAccount(authClient, marker);
+export const { store, useAccount, markSignedOut, RestoreSignedIn } = kit;
+export const { SignInWithOsu, SignOutButton, AccountMenu, DeleteAccountForm } =
+  createAuthComponents(authClient, kit);
+
+// Anywhere, server pages included: only plain data is left to pass.
+<SignInWithOsu next={next} />
+<AccountMenu items={[{ href: "/new", label: "Make a pool" }, { href: "/account", label: "Account" }]} />
+<DeleteAccountForm username={user.username} appName="pools" deletes="This deletes your account and every pool you own. It can't be undone." />
 ```
 
 Build the auth instance once (memoize `getAuth`), and use the same cookie name on both sides.
@@ -169,6 +177,12 @@ Build the auth instance once (memoize `getAuth`), and use the same cookie name o
 | `RestoreSignedIn({ store, hasMarker, next?, pending? })` | Asks for the session once when the marker is missing; with `next`, goes there after. |
 | `osuSignIn(next, signInPath?)` | The body for `authClient.signIn.social`: an error comes back to `/signin?next=<next>`. |
 | `safeNextPath`, `signInHref`, `OSU_PROVIDER_ID` | The same as in `server` and `auth`, safe in the browser. |
+| `createAuthComponents(authClient, kit)` | Since 0.2.0. The four components below with the client's `signIn.social` and `signOut` and the kit's `useAccount` and `markSignedOut` bound (`AuthComponents`; props `BoundSignInProps`, `BoundSignOutProps`, `BoundAccountMenuProps`, `BoundDeleteAccountProps`: each component's own minus what's bound). Export them from a `"use client"` module. |
+| `SignInWithOsu({ next, signIn, signInPath?, label?, pendingLabel?, failedMessage? })` | Since 0.2.0. The large "Sign in with osu!" button. Calls `signIn(osuSignIn(next))`; an error (better-auth's `{ message }` or `{ error: { message } }`, or a throw) shows in a `role="alert"` line and the button comes back. `signInErrorMessage(error, fallback?)` reads it. |
+| `SignOutButton({ signOut, onSignedOut, redirectTo?, variant?, className?, label?, pendingLabel? })` | Since 0.2.0. Signs out, runs `onSignedOut` only once the session is gone, then `router.replace(redirectTo ?? "/")` and `router.refresh()`. |
+| `AccountMenu({ account, items, signOut, onSignedOut, avatarSrc?, signInPath?, signInLabel?, signOutLabel?, signOutRedirect? })` | Since 0.2.0. A sized blank while loading, a "Sign in" link back to this page when signed out, else ui's `HeaderMenu` with the avatar and name, `items` and Sign out. The avatar is a plain `<img>` (your CSP's img-src must allow a.ppy.sh and osu.ppy.sh); `avatarSrc` defaults to `osuAvatarSrc`. |
+| `DeleteAccountForm({ username, appName, deletes, onDeleted, endpoint?, homeHref?, homeLabel?, fetcher? })` | Since 0.2.0. ui's `TypeToConfirm` on the username, then `DELETE endpoint` (default `/api/account`) with `{ username }`. 204: `onDeleted`, "Your account is deleted." and home. Another 2xx: `onDeleted` and the answer's `notice` after that line, staying. A refusal shows `error.message` (else "Deleting failed (status)."); no answer, "Couldn't reach <appName>. Your account is still there." `deletes` is inline content in a `<p>`. |
+| `osuAvatarSrc(url)`, `OSU_AVATAR_HOSTS` | Since 0.2.0. An osu! avatar URL on https when it's on a.ppy.sh or osu.ppy.sh (a bare path is osu.ppy.sh's), else null. |
 
 ### testing
 
@@ -197,7 +211,7 @@ For pools.haruhime.moe, `createMongo` runs `onConnect` (the privilege check, ind
 
 ## Compatibility
 
-ES modules for Node 22.12+ on the server. `auth-react` also runs in browsers; its hook and component files keep `"use client"`, and it loads only `react` and `next/navigation.js`. `server` loads `node:crypto` for machine auth.
+ES modules for Node 22.12+ on the server. `auth-react` also runs in browsers; its hook and component files keep `"use client"`, and it loads only `react`, `next/navigation.js` and `@haruhimemoe/ui`. `server` loads `node:crypto` for machine auth.
 
 ## License
 

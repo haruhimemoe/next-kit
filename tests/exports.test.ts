@@ -3,7 +3,7 @@
  * @desc The public surface of every entry point: exactly these runtime exports, so an accidental
  *       export or removal shows up in review as a semver question; package.json maps each entry
  *       point and nothing else; the browser entry point never loads server code (node:crypto,
- *       better-auth, mongodb, mongoose), and no source file passes 200 lines.
+ *       better-auth, mongodb, mongoose; only react, next/navigation and @haruhimemoe/ui), and no source file passes 200 lines.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
  * @modified Mon Sep 28, 2026
@@ -52,6 +52,7 @@ it("maps every entry point, and only those", () => {
 
 it("keeps the browser entry point free of server code", () => {
   expect([...loads(new URL("../src/auth-react/index.ts", import.meta.url))].sort()).toEqual([
+    "@haruhimemoe/ui",
     "next/navigation.js",
     "react",
   ]);
@@ -166,17 +167,25 @@ it("exports the documented auth API", () => {
 it("exports the documented auth-react API", () => {
   expect(Object.keys(authReact).sort()).toMatchInlineSnapshot(`
     [
+      "AccountMenu",
       "DEFAULT_SIGN_IN_PATH",
+      "DeleteAccountForm",
       "LOADING",
+      "OSU_AVATAR_HOSTS",
       "OSU_PROVIDER_ID",
       "RestoreSignedIn",
+      "SignInWithOsu",
+      "SignOutButton",
       "createAccount",
       "createAccountStore",
+      "createAuthComponents",
       "createSignedInMarker",
       "markerMaxAge",
+      "osuAvatarSrc",
       "osuSignIn",
       "safeNextPath",
       "sessionFetcher",
+      "signInErrorMessage",
       "signInHref",
       "useAccount",
     ]
