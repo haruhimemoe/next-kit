@@ -3,7 +3,8 @@
  * @desc The public surface of every entry point: exactly these runtime exports, so an accidental
  *       export or removal shows up in review as a semver question; package.json maps each entry
  *       point and nothing else; the browser entry point never loads server code (node:crypto,
- *       better-auth, mongodb, mongoose; only react, next/navigation and @haruhimemoe/ui), and no source file passes 200 lines.
+ *       better-auth, mongodb, mongoose; only react, next/navigation and @haruhimemoe/ui), seo loads
+ *       nothing at runtime, and no source file passes 200 lines.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
  * @modified Mon Sep 28, 2026
@@ -15,11 +16,12 @@ import * as auth from "../src/auth/index.js";
 import * as authReact from "../src/auth-react/index.js";
 import * as env from "../src/env/index.js";
 import * as mongo from "../src/mongo/index.js";
+import * as seo from "../src/seo/index.js";
 import * as server from "../src/server/index.js";
 import * as testing from "../src/testing/index.js";
 
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-const ENTRIES = ["server", "env", "mongo", "auth", "auth-react", "testing"];
+const ENTRIES = ["server", "env", "mongo", "auth", "auth-react", "testing", "seo"];
 
 /** Every bare or node: module a src/ file loads at runtime, following relative imports. */
 const loads = (file: URL, seen = new Set<string>(), found = new Set<string>()) => {
@@ -56,6 +58,10 @@ it("keeps the browser entry point free of server code", () => {
     "next/navigation.js",
     "react",
   ]);
+});
+
+it("keeps the seo entry point free of runtime imports (Next's types only)", () => {
+  expect([...loads(new URL("../src/seo/index.ts", import.meta.url))]).toEqual([]);
 });
 
 it("keeps every source file under 200 lines", () => {
@@ -202,6 +208,32 @@ it("exports the documented testing API", () => {
       "startMemoryMongo",
       "stubEnv",
       "stubOsuAppEnv",
+    ]
+  `);
+});
+
+it("exports the documented seo API", () => {
+  expect(Object.keys(seo).sort()).toMatchInlineSnapshot(`
+    [
+      "AI_BOTS",
+      "DESCRIPTION_MAX",
+      "HARUHIME_ORG",
+      "SEARCH_TERM",
+      "SITEMAP_MAX_URLS",
+      "TITLE_SEPARATOR",
+      "clampDescription",
+      "homeMetadata",
+      "ld",
+      "llmsFull",
+      "llmsTxt",
+      "notFoundMetadata",
+      "pageMetadata",
+      "pageTitle",
+      "robots",
+      "serializeLd",
+      "siteMetadata",
+      "sitemapEntries",
+      "textResponse",
     ]
   `);
 });

@@ -9,6 +9,7 @@ The Next.js server plumbing the haruhime.moe tools share. [packs.haruhime.moe](h
 - **`/mongo`:** one MongoClient per process with Mongoose on the same client, index builds that never take the site down, and frozen collection names.
 - **`/auth`:** better-auth with osu! as the only way in, the indexes its collections need, and reading the caller.
 - **`/auth-react`:** the browser half: the signed-in marker cookie, the account store and `useAccount`, `RestoreSignedIn`, and the account components (Sign in with osu!, Sign out, the header's account menu, Delete my account) styled with `@haruhimemoe/ui`.
+- **`/seo`:** Next.js metadata that keeps each page's canonical, og:url and preview image together, robots.txt with the AI crawler stance written down, sitemap entries with honest lastmod, schema.org JSON-LD builders, and llms.txt. No runtime imports; all four haruhime.moe sites use it.
 - **`/testing`:** Vitest helpers: one in-memory MongoDB per run, an msw server that refuses unhandled requests, and a fake env.
 
 Every name, path, limit and message comes from the caller. There is no root entry point; import a subpath.
@@ -29,6 +30,7 @@ bun add @haruhimemoe/next-kit zod
 | `mongo` | `mongodb` ^7.6.0, `mongoose` ^9.10.2 |
 | `auth` | `better-auth` ^1.7.5, `mongodb`, `@haruhimemoe/osu` 0.2 or 0.3 |
 | `auth-react` | `react` ^19.3.0, `next` ^16.3.6, `@haruhimemoe/ui` ^0.5.0 (with its theme set up) |
+| `seo` | `next` ^16.3.6 types only (nothing loads at runtime) |
 | `testing` | `vitest` ^5.0.1, `msw` ^2.15.0, `mongodb-memory-server` ^11.3.0 |
 
 ## Use
@@ -116,6 +118,35 @@ export const { SignInWithOsu, SignOutButton, AccountMenu, DeleteAccountForm } =
 
 Build the auth instance once (memoize `getAuth`), and use the same cookie name on both sides.
 
+SEO: one `Site` per app, then one call per file.
+
+```ts
+// src/constants/seo.ts
+import { HARUHIME_ORG, type Site } from "@haruhimemoe/next-kit/seo";
+export const SEO_SITE: Site = {
+  name: "pools",
+  url: "https://pools.haruhime.moe",
+  title: "osu! tournament mappool builder",
+  description: "Build an osu! tournament mappool: search every ranked map under HR or DT, check the content rules, then download it as a pack.",
+  ogImages: [{ url: "/opengraph-image.png", width: 1200, height: 630, alt: "pools" }],
+  organization: HARUHIME_ORG,
+  parent: { name: "haruhime.moe", url: "https://www.haruhime.moe" },
+};
+
+// src/app/layout.tsx: export const metadata = siteMetadata(SEO_SITE);
+// src/app/page.tsx:   export const metadata = homeMetadata(SEO_SITE);
+// src/app/search/page.tsx
+export const metadata = pageMetadata(SEO_SITE, { path: "/search", title: "Search osu! tournament mappools" });
+// src/app/robots.ts
+export default () => robots(SEO_SITE, { disallow: ["/api/", "/admin"], aiBots: "allow" });
+// src/app/sitemap.ts
+export default async () => sitemapEntries(SEO_SITE, [["/", "/search"], pools.map((p) => ({ path: `/pools/${p.id}`, lastModified: p.contentUpdatedAt }))]);
+// src/app/page.tsx (render with @haruhimemoe/ui's JsonLd)
+<JsonLd data={ld.graph(ld.webSite(SEO_SITE, { searchUrlTemplate: "/search?q={search_term_string}" }), ld.webApplication(SEO_SITE, { category: "UtilitiesApplication" }))} />
+// src/app/llms.txt/route.ts
+export const GET = () => textResponse(llmsTxt({ title: "pools.haruhime.moe", summary: SEO_SITE.description, sections }));
+```
+
 ## API
 
 ### server
@@ -184,6 +215,33 @@ Build the auth instance once (memoize `getAuth`), and use the same cookie name o
 | `DeleteAccountForm({ username, appName, deletes, onDeleted, endpoint?, homeHref?, homeLabel?, fetcher? })` | Since 0.2.0. ui's `TypeToConfirm` on the username, then `DELETE endpoint` (default `/api/account`) with `{ username }`. 204: `onDeleted`, "Your account is deleted." and home. Another 2xx: `onDeleted` and the answer's `notice` after that line, staying. A refusal shows `error.message` (else "Deleting failed (status)."); no answer, "Couldn't reach <appName>. Your account is still there." `deletes` is inline content in a `<p>`. |
 | `osuAvatarSrc(url)`, `OSU_AVATAR_HOSTS` | Since 0.2.0. An osu! avatar URL on https when it's on a.ppy.sh or osu.ppy.sh (a bare path is osu.ppy.sh's), else null. |
 
+### seo
+
+Since 0.3.0. Every helper takes the app's `Site`: `name`, `url` (the canonical origin), `title` (the home page's primary keyword), `titleSuffix?` (defaults to the host), `description`, `locale?` (en_US), `twitter?`, `ogImages`, `organization` and `parent?`.
+
+| Export | What it does |
+| --- | --- |
+| `siteMetadata(site)` | The root layout's `Metadata`: `metadataBase`, title default "keyword · host" and template "%s · host", the clamped description, `applicationName`, openGraph (type, site name, locale, images) and the twitter card. No canonical (a layout canonical leaks into every child) and no icons (the app's icon files). |
+| `homeMetadata(site, { title?, description? })` | `pageMetadata` for `/` with the site's keyword title. |
+| `pageMetadata(site, { path, title, description?, index?, ogType?, images?, modifiedTime?, publishedTime? })` | An absolute "keyword · host" title, the description clamped to 160, `alternates.canonical` and `openGraph.url` set together to the same absolute URL, and a full openGraph and twitter card (images default to `site.ogImages`: Next replaces a layout's openGraph, it doesn't merge it). `index: false` adds noindex, follow. `ogType: "article"` writes the ISO times it has. Throws on a relative path, another origin or a blank title. |
+| `notFoundMetadata(site, what?)` | "Pack not found · host" and noindex, for a `generateMetadata` whose record is missing. |
+| `clampDescription(text, max?)`, `DESCRIPTION_MAX` | One line, at most `max` (160) characters: cut at a word, trailing punctuation dropped, "…" added. |
+| `pageTitle(site, title)`, `TITLE_SEPARATOR` | "keyword · host", the suffix added once. |
+| `robots(site, { allow?, disallow?, aiBots? })` | `MetadataRoute.Robots`: the `*` group, one group naming the allowed AI bots with the same rules (a bot with its own group ignores `*`), a `Disallow: /` group for blocked ones, the sitemap and the host. `aiBots`: `"allow"` (default), `"block-training"`, or `"block-all"` (Bingbot stays, or the site leaves Bing). |
+| `AI_BOTS` | The named crawlers, each `{ userAgent, operator, kind: "training" \| "search", searchEngine? }`: GPTBot, OAI-SearchBot, ChatGPT-User, PerplexityBot, Perplexity-User, ClaudeBot, Claude-SearchBot, Claude-User, anthropic-ai, Google-Extended, Applebot-Extended, Bingbot, CCBot, Bytespider, meta-externalagent. |
+| `sitemapEntries(site, groups)`, `SITEMAP_MAX_URLS` | `MetadataRoute.Sitemap` from groups of paths and `{ path, lastModified?, changeFrequency?, priority? }` records: absolute URLs on the canonical origin, the first entry per URL, `lastModified` only when it's a real date (never made up). Throws past 50,000 URLs or on a priority outside 0 to 1. |
+| `ld.graph(...nodes)` | `{ "@context": "https://schema.org", "@graph": nodes }`. `@context` goes only here. |
+| `ld.organization(org)`, `HARUHIME_ORG` | Organization with `@id` `https://www.haruhime.moe/#organization` and `sameAs` (GitHub, Discord, npm). |
+| `ld.webSite(site, { searchUrlTemplate? })`, `SEARCH_TERM` | WebSite (`#website`) with publisher and parent by `@id`, and a SearchAction when the template holds `{search_term_string}`. |
+| `ld.webApplication(site, { category, name?, description?, features?, path?, browserRequirements? })` | WebApplication (`#app`, or `<path>#app` for a sub-tool), free Offer, operatingSystem "Any", publisher the organization. |
+| `ld.breadcrumbs(site, trail)`, `ld.itemList(site, items, { name? })` | BreadcrumbList and ItemList, positions from 1, absolute URLs. |
+| `ld.faq(items)`, `ld.howTo({ name, description?, steps })` | FAQPage from `{ q, a }` and HowTo with numbered HowToSteps. |
+| `ld.techArticle(site, opts)`, `ld.creativeWork(site, opts)`, `ld.dataset(site, opts)` | TechArticle (author defaults to the organization), CreativeWork and Dataset, with `dateModified` only when known and `isBasedOn` paths resolved. |
+| `serializeLd(data)` | JSON with `<`, `>`, `&`, U+2028 and U+2029 escaped, safe inside a `<script>`. |
+| `llmsTxt({ title, summary, notes?, sections })` | llms.txt (llmstxt.org): H1, blockquote, notes, then `## heading` link lists `- [title](url): note`. Brackets in titles are escaped, spaces and parens in URLs encoded, empty sections left out. |
+| `llmsFull(parts, head?)` | llms-full.txt: each `{ title, url?, markdown }` as its own document, separated by `---`. |
+| `textResponse(body, { maxAge?, sMaxAge?, type? })` | A 200 `text/plain; charset=utf-8` (or `text/markdown`) with public `Cache-Control` (an hour by default) and nosniff. |
+
 ### testing
 
 | Export | What it does |
@@ -211,7 +269,7 @@ For pools.haruhime.moe, `createMongo` runs `onConnect` (the privilege check, ind
 
 ## Compatibility
 
-ES modules for Node 22.12+ on the server. `auth-react` also runs in browsers; its hook and component files keep `"use client"`, and it loads only `react`, `next/navigation.js` and `@haruhimemoe/ui`. `server` loads `node:crypto` for machine auth.
+ES modules for Node 22.12+ on the server. `auth-react` also runs in browsers; its hook and component files keep `"use client"`, and it loads only `react`, `next/navigation.js` and `@haruhimemoe/ui`. `server` loads `node:crypto` for machine auth. `seo` loads nothing at runtime (Next's types only), so it runs anywhere.
 
 ## License
 

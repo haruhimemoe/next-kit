@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-28
+
+### Added
+
+- `@haruhimemoe/next-kit/seo`, for www, packs, pools and bb. No runtime imports (Next's types only).
+  - Metadata: `siteMetadata`, `homeMetadata`, `pageMetadata`, `notFoundMetadata`, `pageTitle` ("keyword · host") and `clampDescription` (160 characters, cut at a word). `pageMetadata` always sets the canonical and og:url together and always writes a full openGraph with the site's images, so a page never loses its preview.
+  - `robots` with the AI crawler stance written down (`"allow"`, `"block-training"` or `"block-all"`) and the `AI_BOTS` table.
+  - `sitemapEntries`: absolute URLs, one per URL, lastmod only when it's a real date, and an error past 50,000 URLs.
+  - JSON-LD builders in `ld` (graph, Organization, WebSite with SearchAction, WebApplication, BreadcrumbList, ItemList, FAQPage, HowTo, TechArticle, CreativeWork, Dataset) with stable `@id`s, `HARUHIME_ORG`, and `serializeLd` for script-safe JSON.
+  - `llmsTxt`, `llmsFull` and `textResponse` for /llms.txt and /llms-full.txt.
+
 ## [0.2.1] - 2026-09-28
 
 ### Fixed
@@ -35,7 +46,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `@haruhimemoe/next-kit/auth-react`: `createSignedInMarker`, `createAccountStore`, `useAccount`, `createAccount`, `RestoreSignedIn` and `osuSignIn`.
 - `@haruhimemoe/next-kit/testing`: `startMemoryMongo`, `setupTestDb`, `setupMsw` and the fake osu! app env.
 
-[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.2.1...HEAD
+[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/haruhimemoe/next-kit/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/haruhimemoe/next-kit/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/haruhimemoe/next-kit/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/haruhimemoe/next-kit/releases/tag/v0.1.0

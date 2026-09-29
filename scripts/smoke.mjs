@@ -13,9 +13,10 @@ import * as auth from "../dist/auth/index.js";
 import * as authReact from "../dist/auth-react/index.js";
 import * as env from "../dist/env/index.js";
 import * as mongo from "../dist/mongo/index.js";
+import * as seo from "../dist/seo/index.js";
 import * as server from "../dist/server/index.js";
 
-const ENTRIES = ["server", "env", "mongo", "auth", "auth-react", "testing"];
+const ENTRIES = ["server", "env", "mongo", "auth", "auth-react", "testing", "seo"];
 for (const entry of ENTRIES) {
   for (const file of ["index.js", "index.d.ts"]) {
     assert.ok(existsSync(new URL(`../dist/${entry}/${file}`, import.meta.url)), `${entry} ${file}`);
@@ -62,4 +63,19 @@ for (const file of [
   const text = readFileSync(new URL(`../dist/auth-react/${file}`, import.meta.url), "utf8");
   assert.match(text, /^(\/\*[\s\S]*?\*\/\s*)?"use client";/, `${file} keeps "use client"`);
 }
+const site = {
+  name: "pools",
+  url: "https://pools.haruhime.moe",
+  title: "osu! tournament mappool builder",
+  description: "Build an osu! tournament mappool.",
+  ogImages: [{ url: "/opengraph-image.png" }],
+  organization: seo.HARUHIME_ORG,
+};
+const page = seo.pageMetadata(site, { path: "/search", title: "Search" });
+assert.equal(page.alternates.canonical, page.openGraph.url);
+assert.deepEqual(page.openGraph.images, site.ogImages);
+assert.equal(seo.robots(site).sitemap, "https://pools.haruhime.moe/sitemap.xml");
+assert.equal(seo.sitemapEntries(site, [["/", "/"]]).length, 1);
+assert.equal(seo.serializeLd(seo.ld.graph(seo.ld.webSite(site))).includes("<"), false);
+assert.match(seo.llmsTxt({ title: "t", summary: "s", sections: [] }), /^# t\n\n> s\n$/);
 console.log("smoke: ok");

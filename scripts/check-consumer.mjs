@@ -42,7 +42,9 @@ import { createAccountStore, createAuthComponents, createSignedInMarker, osuAvat
 import { createServerEnv, EnvError, OSU_APP_PLACEHOLDERS, OSU_APP_SECRET_KEYS, osuAppEnvSchema } from "@haruhimemoe/next-kit/env";
 import { createMongo, defineCollections, ensureIndexes, type IndexSpec } from "@haruhimemoe/next-kit/mongo";
 import { createRateLimiter, parseJsonBody, parseIdList, refuseCrossSite, type RateLimitRule } from "@haruhimemoe/next-kit/server";
+import { HARUHIME_ORG, ld, pageMetadata, robots, serializeLd, sitemapEntries, type Site } from "@haruhimemoe/next-kit/seo";
 import type { setupTestDb, TestDbOptions } from "@haruhimemoe/next-kit/testing";
+import type { Metadata, MetadataRoute } from "next";
 
 const env = createServerEnv({ schema: osuAppEnvSchema.extend({ EXTRA: z.string().optional() }), placeholders: OSU_APP_PLACEHOLDERS, secretKeys: OSU_APP_SECRET_KEYS });
 const parsed = env.parse({ SKIP_ENV_VALIDATION: "true" });
@@ -73,6 +75,13 @@ const authUi = createAuthComponents({ signIn: { social: async () => ({ data: nul
 const menuProps: BoundAccountMenuProps = { items: [{ href: "/me", label: "Me" }] };
 if (!(new EnvError("x") instanceof Error)) throw new Error("env error");
 void [authUi, menuProps, clientId, index, rule, limiter, osuId, user, account, store, options, ensureIndexes, createOsuAuth, getOsuUser];
+const site: Site = { name: "pools", url: "https://pools.haruhime.moe", title: "osu! mappool builder", description: "d", ogImages: [], organization: HARUHIME_ORG };
+const meta: Metadata = pageMetadata(site, { path: "/search", title: "Search" });
+const rules: MetadataRoute.Robots = robots(site, { aiBots: "block-training" });
+const entries: MetadataRoute.Sitemap = sitemapEntries(site, [["/"], [{ path: "/p", lastModified: new Date() }]]);
+if (meta.alternates?.canonical !== "https://pools.haruhime.moe/search" || entries.length !== 2) throw new Error("seo");
+if (serializeLd(ld.graph(ld.webSite(site, { searchUrlTemplate: "/search?q={search_term_string}" }))).includes("<")) throw new Error("ld");
+void rules;
 type _ = typeof setupTestDb;
 console.log("consumer: ok");
 `;
