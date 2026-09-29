@@ -38,6 +38,8 @@ export type Site = {
   title: string;
   /** What follows " · " in every title. Defaults to the host, like pools.haruhime.moe. */
   titleSuffix?: string;
+  /** A shorter suffix, like "pools", for titles that would pass TITLE_MAX with the full one. */
+  shortTitleSuffix?: string;
   /** The default description, 140 to 160 characters. */
   description: string;
   /** Open Graph locale. Defaults to en_US. */
@@ -103,6 +105,16 @@ export const absoluteUrl = (site: Pick<Site, "url">, path: string): string => {
  */
 export const nodeId = (url: string, name: string): string => `${origin(url)}/#${name}`;
 
+/** The longest title search results show in full; "auto" switches to the short suffix past it. */
+export const TITLE_MAX = 60;
+
+/**
+ * Which suffix a title gets: "full" (titleSuffix or the host), "short" (shortTitleSuffix, else
+ * full), "none" (the keyword alone), or "auto" (full, unless that passes TITLE_MAX and the site
+ * has a shortTitleSuffix).
+ */
+export type TitleSuffixMode = "auto" | "full" | "short" | "none";
+
 /**
  * @function titleSuffix
  * @param site {Site} the site
@@ -114,14 +126,25 @@ export const titleSuffix = (site: Site): string => site.titleSuffix ?? new URL(s
  * @function pageTitle
  * @param site {Site} the site
  * @param title {string} the page's primary keyword, like "Search osu! tournament mappools"
- * @returns {string} "Primary keyword · host" (the suffix is added once, never twice)
+ * @param mode {TitleSuffixMode} which suffix to add (default "full")
+ * @returns {string} "Primary keyword · host" (a suffix already there is never added twice)
  * @throws {Error} when title is blank
  */
-export const pageTitle = (site: Site, title: string): string => {
+export const pageTitle = (site: Site, title: string, mode: TitleSuffixMode = "full"): string => {
   const keyword = title.replace(/\s+/g, " ").trim();
   if (!keyword) throw new Error("seo: a page title can't be blank");
-  const suffix = `${TITLE_SEPARATOR}${titleSuffix(site)}`;
-  return keyword.endsWith(suffix) ? keyword : `${keyword}${suffix}`;
+  const full = titleSuffix(site);
+  const suffixes = [full, site.shortTitleSuffix]
+    .filter(Boolean)
+    .map((s) => `${TITLE_SEPARATOR}${s}`);
+  if (mode === "none" || suffixes.some((suffix) => keyword.endsWith(suffix))) return keyword;
+  const long = `${keyword}${TITLE_SEPARATOR}${full}`;
+  const short = site.shortTitleSuffix
+    ? `${keyword}${TITLE_SEPARATOR}${site.shortTitleSuffix}`
+    : long;
+  if (mode === "short") return short;
+  if (mode === "auto" && long.length > TITLE_MAX) return short;
+  return long;
 };
 
 /**

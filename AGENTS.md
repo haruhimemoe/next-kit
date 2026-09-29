@@ -24,7 +24,7 @@
 - `src/auth/`: `create.ts` (`createOsuAuth`), `osu.ts` (provider, profile mapping, `withoutTokens`), `osu-id.ts` (the provider id alone, for the browser), `indexes.ts`, `session.ts`.
 - `src/auth-react/`: `marker.ts`, `account-store.ts`, `use-account.ts`, `RestoreSignedIn.tsx`, `sign-in.ts`, `avatar.ts` (`osuAvatarSrc`), the ui-styled components `SignInWithOsu.tsx`, `SignOutButton.tsx`, `AccountMenu.tsx`, `DeleteAccountForm.tsx`, and `auth-components.tsx` (`createAuthComponents`).
 - `src/testing/`: `mongo.ts`, `msw.ts`, `env.ts`.
-- `src/seo/`: `site.ts` (`Site`, `HARUHIME_ORG`, `pageTitle`, URL/date/@id helpers), `describe.ts` (`clampDescription`), `metadata.ts`, `robots.ts` (`AI_BOTS`), `sitemap.ts`, `ld-site.ts` (graph, Organization, WebSite, WebApplication, breadcrumbs, ItemList), `ld-content.ts` (FAQ, HowTo, TechArticle, CreativeWork, Dataset), `ld.ts` (the `ld` namespace, `serializeLd`), `llms.ts` (`llmsTxt`, `llmsFull`, `textResponse`).
+- `src/seo/`: `site.ts` (`Site`, `HARUHIME_ORG`, `pageTitle` and the short suffix modes, URL/date/@id helpers), `describe.ts` (`clampDescription`), `metadata.ts`, `robots.ts` (`AI_BOTS`), `sitemap.ts`, `ld-site.ts` (graph, Organization, WebSite, WebApplication, breadcrumbs, ItemList), `ld-content.ts` (FAQ, HowTo, TechArticle, CreativeWork, Dataset), `ld.ts` (the `ld` namespace, `serializeLd`), `llms.ts` (`llmsTxt`, `llmsFull`, `textResponse`).
 - `tests/`: one folder per entry point; `helpers/db.ts` and `helpers/auth.ts`; `setup/mongo-global.ts`; `exports.test.ts`.
 - `scripts/smoke.mjs`: imports the built `dist/` of every entry point (`bun run test:dist`).
 - `scripts/check-consumer.mjs`: packs the package, installs it with a given zod and the apps' peers, typechecks and runs a strict consumer.

@@ -19,6 +19,7 @@ import {
   pageTitle,
   type Site,
   TITLE_SEPARATOR,
+  type TitleSuffixMode,
   titleSuffix,
 } from "./site.js";
 
@@ -28,6 +29,11 @@ export type PageMetadataOptions = {
   path: string;
   /** The primary keyword; " · host" is added (pageTitle). */
   title: string;
+  /**
+   * Default "auto": the full suffix, or the site's shortTitleSuffix when the full title would
+   * pass TITLE_MAX (60). "full", "short" and "none" force one.
+   */
+  titleSuffix?: TitleSuffixMode;
   /** Defaults to the site's description. Clamped to 160 characters. */
   description?: string;
   /** false: noindex, follow. Default true. */
@@ -81,14 +87,15 @@ export const siteMetadata = (site: Site): Metadata => {
  * @function pageMetadata
  * @param site {Site} the site
  * @param options {PageMetadataOptions} the page
- * @returns {Metadata} an absolute "keyword · host" title, the clamped description, the
+ * @returns {Metadata} an absolute "keyword · host" title (or "keyword · short" past 60
+ *          characters, see titleSuffix), the clamped description, the
  *          canonical and og:url (always together, as absolute URLs), a full openGraph and
  *          twitter card, and robots noindex when index is false
  * @throws {Error} when path doesn't start with "/" or the title is blank
  */
 export const pageMetadata = (site: Site, options: PageMetadataOptions): Metadata => {
   const url = absoluteUrl(site, options.path);
-  const title = pageTitle(site, options.title);
+  const title = pageTitle(site, options.title, options.titleSuffix ?? "auto");
   const description = clampDescription(options.description ?? site.description);
   const images = [...(options.images ?? site.ogImages)];
   const base = {
@@ -142,6 +149,6 @@ export const homeMetadata = (
  *          records returned {} and got the site's default title)
  */
 export const notFoundMetadata = (site: Site, what = "Page"): Metadata => ({
-  title: { absolute: pageTitle(site, `${what} not found`) },
+  title: { absolute: pageTitle(site, `${what} not found`, "auto") },
   robots: { index: false, follow: false },
 });

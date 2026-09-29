@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-28
+
+### Added
+
+- `seo`: a short title suffix. `Site.shortTitleSuffix` (like "pools") and `pageMetadata`'s `titleSuffix` option: `"auto"` (the default) keeps "keyword · host" and switches to "keyword · pools" only when the full title passes 60 characters (`TITLE_MAX`) and the site sets a short suffix; `"full"`, `"short"` and `"none"` force one. `pageTitle` takes the same mode (default `"full"`) and `notFoundMetadata` shortens like `"auto"`. Sites without `shortTitleSuffix` get the same titles as before.
+
 ## [0.3.0] - 2026-09-28
 
 ### Added
@@ -46,7 +52,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `@haruhimemoe/next-kit/auth-react`: `createSignedInMarker`, `createAccountStore`, `useAccount`, `createAccount`, `RestoreSignedIn` and `osuSignIn`.
 - `@haruhimemoe/next-kit/testing`: `startMemoryMongo`, `setupTestDb`, `setupMsw` and the fake osu! app env.
 
-[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.3.0...HEAD
+[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/haruhimemoe/next-kit/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/haruhimemoe/next-kit/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/haruhimemoe/next-kit/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/haruhimemoe/next-kit/compare/v0.1.0...v0.2.0

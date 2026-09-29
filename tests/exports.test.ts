@@ -220,6 +220,7 @@ it("exports the documented seo API", () => {
       "HARUHIME_ORG",
       "SEARCH_TERM",
       "SITEMAP_MAX_URLS",
+      "TITLE_MAX",
       "TITLE_SEPARATOR",
       "clampDescription",
       "homeMetadata",

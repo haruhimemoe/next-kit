@@ -56,7 +56,9 @@ export {
   type Organization,
   pageTitle,
   type Site,
+  TITLE_MAX,
   TITLE_SEPARATOR,
+  type TitleSuffixMode,
 } from "./site.js";
 export {
   type ChangeFrequency,

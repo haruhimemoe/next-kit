@@ -14,7 +14,7 @@ Every name, path, limit and message comes from the caller. Where packs and pools
 - [API: mongo](https://github.com/haruhimemoe/next-kit#mongo): `createMongo`, `ensureIndexes`, `ttlIndex`, `defineCollections`.
 - [API: auth](https://github.com/haruhimemoe/next-kit#auth): `createOsuAuth`, its hooks, `AUTH_INDEX_SPECS`, `getOsuUser`.
 - [API: auth-react](https://github.com/haruhimemoe/next-kit#auth-react): `createSignedInMarker`, `createAccount`, `useAccount`, `RestoreSignedIn`, `osuSignIn`, `createAuthComponents`, `SignInWithOsu`, `SignOutButton`, `AccountMenu`, `DeleteAccountForm`, `osuAvatarSrc`.
-- [API: seo](https://github.com/haruhimemoe/next-kit#seo): `siteMetadata`, `homeMetadata`, `pageMetadata`, `notFoundMetadata`, `clampDescription`, `pageTitle`, `robots`, `AI_BOTS`, `sitemapEntries`, the `ld` JSON-LD builders, `HARUHIME_ORG`, `serializeLd`, `llmsTxt`, `llmsFull`, `textResponse`.
+- [API: seo](https://github.com/haruhimemoe/next-kit#seo): `siteMetadata`, `homeMetadata`, `pageMetadata`, `notFoundMetadata`, `clampDescription`, `pageTitle` (with `TITLE_MAX` and the short suffix modes), `robots`, `AI_BOTS`, `sitemapEntries`, the `ld` JSON-LD builders, `HARUHIME_ORG`, `serializeLd`, `llmsTxt`, `llmsFull`, `textResponse`.
 - [API: testing](https://github.com/haruhimemoe/next-kit#testing): `startMemoryMongo`, `setupTestDb`, `setupMsw`, the fake env.
 - [Migration](https://github.com/haruhimemoe/next-kit#migration): What changes for packs.haruhime.moe and pools.haruhime.moe when they drop their copies.
 - [Compatibility](https://github.com/haruhimemoe/next-kit#compatibility): Runtimes, and what the browser entry point loads.
