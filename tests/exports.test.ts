@@ -7,7 +7,7 @@
  *       nothing at runtime, and no source file passes 200 lines.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Sep 28, 2026
+ * @modified Sat Oct 3, 2026
  */
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -66,7 +66,7 @@ it("keeps the seo entry point free of runtime imports (Next's types only)", () =
 });
 
 it("keeps every source file under 200 lines", () => {
-  for (const dir of ENTRIES) {
+  for (const dir of [...ENTRIES, "check"]) {
     for (const file of readdirSync(new URL(`../src/${dir}`, import.meta.url))) {
       const text = readFileSync(new URL(`../src/${dir}/${file}`, import.meta.url), "utf8");
       expect(text.split("\n").length, `${dir}/${file}`).toBeLessThanOrEqual(200);

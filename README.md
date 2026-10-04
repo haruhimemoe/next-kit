@@ -149,6 +149,22 @@ export default async () => sitemapEntries(SEO_SITE, [["/", "/search"], pools.map
 export const GET = () => textResponse(llmsTxt({ title: "pools.haruhime.moe", summary: SEO_SITE.description, sections }));
 ```
 
+## Standards check
+
+`next-kit check [dir]` walks `src/app` (default: the current directory) and confirms every standard route exists, so CI catches a missing one before a page does:
+
+```sh
+bunx next-kit check
+```
+
+It always checks the crawl files: `robots.ts`, `sitemap.ts`, `llms.txt/route.ts`, `llms-full.txt/route.ts`, and `.well-known/security.txt/route.ts` (each also accepted as a route handler, like `robots.txt/route.ts`). Once an app has `src/app/api/v1/`, it also checks the public API: `api/v1/me/route.ts`, `api/v1/openapi.json/route.ts`, `api/me/api-key/route.ts`, and a `docs/api` page (a dynamic `docs/[slug]/page.tsx` counts too). Route groups like `(public)/` are ignored, since they don't change the URL.
+
+The command prints one `pass` or `FAIL` line per standard, names each missing file, and exits 1 on a failure (or when `src/app` is missing). Add it to CI:
+
+```yaml
+- run: bunx next-kit check
+```
+
 ## API
 
 ### server

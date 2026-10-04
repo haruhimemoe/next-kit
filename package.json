@@ -26,6 +26,9 @@
   "license": "MIT",
   "author": "David (https://dvh.sh)",
   "type": "module",
+  "bin": {
+    "next-kit": "./dist/check/cli.js"
+  },
   "exports": {
     "./server": {
       "types": "./dist/server/index.d.ts",

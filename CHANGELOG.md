@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 - `buildSecurityTxt` takes `contactUrl`, listed before the email.
 - `api-keys` entry point: the shared key format (`h` + two letters + `_`, then 32 random bytes), `createApiKeyStore` over `api_keys`, and `createApiKeyGuard` with `API_LIMITS` for `/api/v1` routes. Moved from packs.
+- `next-kit check` bin: fails when an app is missing a standard route.
 
 ## [0.4.0] - 2026-09-28
 
