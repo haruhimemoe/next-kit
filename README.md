@@ -31,7 +31,7 @@ bun add @haruhimemoe/next-kit zod
 | `env` | nothing else |
 | `mongo` | `mongodb` ^7.6.0, `mongoose` ^9.10.2 |
 | `auth` | `better-auth` ^1.7.5, `mongodb`, `@haruhimemoe/osu` 0.2 or 0.3 |
-| `auth-react` | `react` ^19.3.0, `next` ^16.3.6, `@haruhimemoe/ui` ^0.5.0 \|\| ^0.6.0 \|\| ^0.7.0 \|\| ^0.8.0 \|\| ^0.9.0 \|\| ^0.10.0 \|\| ^0.11.0 (with its theme set up) |
+| `auth-react` | `react` ^19.3.0, `next` ^16.3.6, `@haruhimemoe/ui` ^0.5.0 \|\| ^0.6.0 \|\| ^0.7.0 \|\| ^0.8.0 \|\| ^0.9.0 \|\| ^0.10.0 \|\| ^0.11.0 \|\| ^0.12.0 \|\| ^0.13.0 (with its theme set up) |
 | `seo` | `next` ^16.3.6 types only (nothing loads at runtime) |
 | `testing` | `vitest` ^5.0.1, `msw` ^2.15.0, `mongodb-memory-server` ^11.3.0 |
 | `api-keys` | `mongodb` ^7.6.0 |
