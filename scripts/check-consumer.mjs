@@ -37,6 +37,8 @@ const run = (command, args, cwd = dir) =>
   });
 
 const CONSUMER = `import { z } from "zod";
+import { MongoClient } from "mongodb";
+import { createApiKeyStore, type ApiKeyStore } from "@haruhimemoe/next-kit/api-keys";
 import { createOsuAuth, getOsuUser, type OsuAuth, type OsuSessionUser } from "@haruhimemoe/next-kit/auth";
 import { createAccountStore, createAuthComponents, createSignedInMarker, osuAvatarSrc, osuSignIn, safeNextPath, type Account, type BoundAccountMenuProps } from "@haruhimemoe/next-kit/auth-react";
 import { createServerEnv, EnvError, OSU_APP_PLACEHOLDERS, OSU_APP_SECRET_KEYS, osuAppEnvSchema } from "@haruhimemoe/next-kit/env";
@@ -57,6 +59,8 @@ const index: IndexSpec = { collection: pools, key: { a: 1 } };
 const rule: RateLimitRule = { scope: "s", limit: 1, windowSeconds: 60 };
 const mongo = createMongo({ dbName: "x", globalKey: "__x", uri: () => "mongodb://127.0.0.1:1" });
 const limiter = createRateLimiter({ db: mongo.connectedDb });
+const client = new MongoClient("mongodb://127.0.0.1:1");
+const keyStore: ApiKeyStore = createApiKeyStore({ prefix: "hpl_", db: async () => client.db("x") });
 type User = OsuAuth["$Infer"]["Session"]["user"];
 const osuId: User["osuId"] = 2;
 const user: OsuSessionUser | null = null;
@@ -74,7 +78,7 @@ if (osuAvatarSrc("/x") !== "https://osu.ppy.sh/x") throw new Error("avatar");
 const authUi = createAuthComponents({ signIn: { social: async () => ({ data: null, error: null }) }, signOut: async () => ({}) }, { useAccount: () => account, markSignedOut: () => {} });
 const menuProps: BoundAccountMenuProps = { items: [{ href: "/me", label: "Me" }] };
 if (!(new EnvError("x") instanceof Error)) throw new Error("env error");
-void [authUi, menuProps, clientId, index, rule, limiter, osuId, user, account, store, options, ensureIndexes, createOsuAuth, getOsuUser];
+void [authUi, menuProps, clientId, index, rule, limiter, osuId, user, account, store, options, ensureIndexes, createOsuAuth, getOsuUser, keyStore];
 const site: Site = { name: "pools", url: "https://pools.haruhime.moe", title: "osu! mappool builder", description: "d", ogImages: [], organization: HARUHIME_ORG };
 const meta: Metadata = pageMetadata(site, { path: "/search", title: "Search" });
 const rules: MetadataRoute.Robots = robots(site, { aiBots: "block-training" });

@@ -11,6 +11,7 @@ The Next.js server plumbing the haruhime.moe tools share. [packs.haruhime.moe](h
 - **`/auth-react`:** the browser half: the signed-in marker cookie, the account store and `useAccount`, `RestoreSignedIn`, and the account components (Sign in with osu!, Sign out, the header's account menu, Delete my account) styled with `@haruhimemoe/ui`.
 - **`/seo`:** Next.js metadata that keeps each page's canonical, og:url and preview image together, robots.txt with the AI crawler stance written down, sitemap entries with honest lastmod, schema.org JSON-LD builders, and llms.txt. No runtime imports; all four haruhime.moe sites use it.
 - **`/testing`:** Vitest helpers: one in-memory MongoDB per run, an msw server that refuses unhandled requests, and a fake env.
+- **`/api-keys`:** the shared key format (an app prefix like `hpk_` plus 32 random bytes), a key store over `api_keys`, and the `/api/v1` guard with the standard limits.
 
 Every name, path, limit and message comes from the caller. There is no root entry point; import a subpath.
 
@@ -32,6 +33,7 @@ bun add @haruhimemoe/next-kit zod
 | `auth-react` | `react` ^19.3.0, `next` ^16.3.6, `@haruhimemoe/ui` ^0.5.0 (with its theme set up) |
 | `seo` | `next` ^16.3.6 types only (nothing loads at runtime) |
 | `testing` | `vitest` ^5.0.1, `msw` ^2.15.0, `mongodb-memory-server` ^11.3.0 |
+| `api-keys` | `mongodb` ^7.6.0 |
 
 ## Use
 
@@ -250,6 +252,27 @@ Since 0.3.0. Every helper takes the app's `Site`: `name`, `url` (the canonical o
 | `setupTestDb({ connect, db, close, collections })` | Empties the collections before each test, closes after the file. `BETTER_AUTH_COLLECTIONS` lists better-auth's. |
 | `setupMsw(...handlers)` | An msw server for the file; an unhandled request is an error. |
 | `TEST_OSU_APP_ENV`, `stubOsuAppEnv(overrides?)`, `stubEnv(values)` | A valid fake env and `vi.stubEnv` helpers. |
+
+### api-keys
+
+| Export | What it does |
+| --- | --- |
+| `API_KEY_BYTES` | Random bytes in a key: 32, shown as 43 base64url characters. |
+| `API_KEY_DISPLAY_LENGTH` | Characters of a key shown on account pages and in data exports (prefix + 8): 12. |
+| `API_KEY_PREFIX_PATTERN` | Every app prefix: `h`, two lowercase letters, `_`. |
+| `generateApiKey(prefix)` | A new key for that prefix; show it once and store only `hashApiKey(key)`. Throws `TypeError` on a bad prefix. |
+| `hashApiKey(key)` | A key's SHA-256 hex digest, the only form ever stored. |
+| `apiKeyDisplay(key)` | A key's first `API_KEY_DISPLAY_LENGTH` characters. |
+| `isApiKeyFormat(prefix, value)` | True only for that prefix plus 43 base64url characters; checked before hashing an untrusted token. |
+| `apiKeyToken(headers)` | The single token after `Bearer ` (any case, extra spaces ignored) in a request's `authorization` header, or null. |
+| `assertApiKeyPrefix(prefix)` | Throws `TypeError` unless the prefix matches `API_KEY_PREFIX_PATTERN`. |
+| `API_KEYS_COLLECTION` | The collection every app keeps its keys in: `api_keys`. |
+| `LAST_USED_INTERVAL_MS` | `lastUsedAt` is written at most this often (an hour), to save writes. |
+| `apiKeyIndexSpecs(collection?)` | Unique `userId` and unique `hash` (`secret: true`, never logged), for the app's own index list. |
+| `createApiKeyStore({ prefix, db, collection?, now? })` | One key per user over MongoDB: `issue(userId)`, `info(userId)`, `revoke(userId)`, `authenticate(key)` (the owner's user id and a `stamp()` to record the use), `deleteFor(userId)` and `ensureIndexes()`. Throws `TypeError` on a bad prefix. |
+| `API_LIMITS` | The standard fixed-window limits every haruhime API uses: `api` (60/min per user), `apiWrite` (10/min per user, also counted by `api`), `authFail` (20/min per IP), `keyCreate` (10/hour per user). |
+| `API_SERVER_ERROR` | The 500 message when a key lookup or handler throws. |
+| `createApiKeyGuard({ store, limiter, resolveCaller, messages, limits?, now? })` | Returns `withApiKey(handler)`: a `/api/v1` route handler that runs `handler(request, caller, context)` only for a good key under `API_LIMITS`, with `RateLimit-*` headers, `Cache-Control: no-store`, a 401 with `WWW-Authenticate: Bearer` for a missing or bad key (counted per IP), and a JSON 500 for a thrown error. No CORS headers: the API is for servers and bots. |
 
 ## Migration
 

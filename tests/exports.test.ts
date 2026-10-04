@@ -12,6 +12,7 @@
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { expect, it } from "vitest";
+import * as apiKeys from "../src/api-keys/index.js";
 import * as auth from "../src/auth/index.js";
 import * as authReact from "../src/auth-react/index.js";
 import * as env from "../src/env/index.js";
@@ -21,7 +22,7 @@ import * as server from "../src/server/index.js";
 import * as testing from "../src/testing/index.js";
 
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-const ENTRIES = ["server", "env", "mongo", "auth", "auth-react", "testing", "seo"];
+const ENTRIES = ["server", "env", "mongo", "auth", "auth-react", "testing", "seo", "api-keys"];
 
 /** Every bare or node: module a src/ file loads at runtime, following relative imports. */
 const loads = (file: URL, seen = new Set<string>(), found = new Set<string>()) => {
@@ -235,6 +236,29 @@ it("exports the documented seo API", () => {
       "siteMetadata",
       "sitemapEntries",
       "textResponse",
+    ]
+  `);
+});
+
+it("exports the documented api-keys API", () => {
+  expect(Object.keys(apiKeys).sort()).toMatchInlineSnapshot(`
+    [
+      "API_KEYS_COLLECTION",
+      "API_KEY_BYTES",
+      "API_KEY_DISPLAY_LENGTH",
+      "API_KEY_PREFIX_PATTERN",
+      "API_LIMITS",
+      "API_SERVER_ERROR",
+      "LAST_USED_INTERVAL_MS",
+      "apiKeyDisplay",
+      "apiKeyIndexSpecs",
+      "apiKeyToken",
+      "assertApiKeyPrefix",
+      "createApiKeyGuard",
+      "createApiKeyStore",
+      "generateApiKey",
+      "hashApiKey",
+      "isApiKeyFormat",
     ]
   `);
 });
