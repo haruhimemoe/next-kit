@@ -6,10 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-04
+
 ### Added
 - `buildSecurityTxt` takes `contactUrl`, listed before the email.
 - `api-keys` entry point: the shared key format (`h` + two letters + `_`, then 32 random bytes), `createApiKeyStore` over `api_keys`, and `createApiKeyGuard` with `API_LIMITS` for `/api/v1` routes. Moved from packs.
 - `next-kit check` bin: fails when an app is missing a standard route.
+
+### Changed
+- `@haruhimemoe/ui` peer range now covers 0.5 through 0.9.
 
 ## [0.4.0] - 2026-09-28
 
@@ -57,7 +62,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `@haruhimemoe/next-kit/auth-react`: `createSignedInMarker`, `createAccountStore`, `useAccount`, `createAccount`, `RestoreSignedIn` and `osuSignIn`.
 - `@haruhimemoe/next-kit/testing`: `startMemoryMongo`, `setupTestDb`, `setupMsw` and the fake osu! app env.
 
-[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.4.0...HEAD
+[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/haruhimemoe/next-kit/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/haruhimemoe/next-kit/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/haruhimemoe/next-kit/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/haruhimemoe/next-kit/compare/v0.2.0...v0.2.1
