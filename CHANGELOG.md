@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `docs` entry point: a content registry (`defineContent`, `CONTENT_SECTIONS`, `SECTION_LABELS`) and the path helpers (`contentPath`, `markdownPath`, `findEntry`, `contentParams`) for an app's docs, guides and legal pages, plus app-made extra entries like bb's tag pages. No runtime imports.
 - `mdxToMarkdown` in `docs`: converts bb-flavored MDX to plain Markdown (callouts to blockquotes, import/export lines dropped, capitalized JSX removed, root-relative links and images absolutized, a title heading added when missing). Content inside fenced code blocks is left untouched. Still no runtime imports.
 - `docs/files` entry point: `readContentMarkdown` reads and converts a registered entry's markdown file, and `contentFileDrift` compares a registry against the files on disk. Loads `node:fs`.
+- `contentLlmsTxt`, `contentLlmsFull`, `contentSitemap` and `contentRewrites` in `docs`: llms.txt (sections in order Docs, Guides, API, Legal, empty ones left out), llms-full.txt (each entry's own leading H1 stripped, since `llmsFull` writes the part title), sitemap records per section (an index path, each entry, each extra) and the one rewrite rule for a content page's ".md" mirror. Built on `llmsTxt`/`llmsFull`/`SitemapRecord` from `seo`. Still no runtime imports.
 
 ## [0.5.0] - 2026-10-04
 

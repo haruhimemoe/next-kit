@@ -286,8 +286,12 @@ it("exports the documented docs API", () => {
     [
       "CONTENT_SECTIONS",
       "SECTION_LABELS",
+      "contentLlmsFull",
+      "contentLlmsTxt",
       "contentParams",
       "contentPath",
+      "contentRewrites",
+      "contentSitemap",
       "defineContent",
       "findEntry",
       "markdownPath",
