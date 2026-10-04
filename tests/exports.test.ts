@@ -291,11 +291,16 @@ it("exports the documented docs API", () => {
       "defineContent",
       "findEntry",
       "markdownPath",
+      "mdxToMarkdown",
     ]
   `);
 });
 
 it("exports the documented docs/files API", () => {
-  // Reserved: filled in by a later change on this branch (node:fs reads only there).
-  expect(Object.keys(docsFiles).sort()).toMatchInlineSnapshot("[]");
+  expect(Object.keys(docsFiles).sort()).toMatchInlineSnapshot(`
+    [
+      "contentFileDrift",
+      "readContentMarkdown",
+    ]
+  `);
 });

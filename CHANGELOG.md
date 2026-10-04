@@ -7,7 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
-- `docs` entry point: a content registry (`defineContent`, `CONTENT_SECTIONS`, `SECTION_LABELS`) and the path helpers (`contentPath`, `markdownPath`, `findEntry`, `contentParams`) for an app's docs, guides and legal pages, plus app-made extra entries like bb's tag pages. No runtime imports. `docs/files` entry point reserved for reading the backing markdown files (node:fs); content comes in a later change.
+- `docs` entry point: a content registry (`defineContent`, `CONTENT_SECTIONS`, `SECTION_LABELS`) and the path helpers (`contentPath`, `markdownPath`, `findEntry`, `contentParams`) for an app's docs, guides and legal pages, plus app-made extra entries like bb's tag pages. No runtime imports.
+- `mdxToMarkdown` in `docs`: converts bb-flavored MDX to plain Markdown (callouts to blockquotes, import/export lines dropped, capitalized JSX removed, root-relative links and images absolutized, a title heading added when missing). Content inside fenced code blocks is left untouched. Still no runtime imports.
+- `docs/files` entry point: `readContentMarkdown` reads and converts a registered entry's markdown file, and `contentFileDrift` compares a registry against the files on disk. Loads `node:fs`.
 
 ## [0.5.0] - 2026-10-04
 
