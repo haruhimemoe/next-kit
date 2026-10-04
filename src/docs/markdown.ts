@@ -129,7 +129,16 @@ export const mdxToMarkdown = (source: string, options: MarkdownOptions): string 
   for (const transform of transforms) text = transform(text);
   text = text.replace(/\r\n?/g, "\n");
 
-  const converted = mergeCalloutSegments(segmentFences(text), calloutBodyToBlockquote)
+  // Rules 4/5 only, run on a fence-spanning callout's non-fence body chunks before quoting; see
+  // mergeCalloutSegments's doc comment for why fence chunks skip this.
+  const processBodyProse = (body: string): string =>
+    absolutizeRootLinks(removeJsxTags(body), siteUrl);
+
+  const converted = mergeCalloutSegments(
+    segmentFences(text),
+    processBodyProse,
+    calloutBodyToBlockquote,
+  )
     .map((segment) =>
       segment.isFence ? segment.lines.join("\n") : processProse(segment.lines.join("\n"), siteUrl),
     )

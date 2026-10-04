@@ -40,6 +40,14 @@ describe("mdxToMarkdown", () => {
     );
   });
 
+  it("I2 regression: does not run rule 4/5 on fence content inside a callout body", () => {
+    const src =
+      '<Callout type="warning">\nBefore.\n\n```sh\n<Foo/>\n](/a)\n```\n\nAfter.\n</Callout>\n';
+    expect(mdxToMarkdown(src, opts)).toBe(
+      "# T\n\n> **Warning:** Before.\n> \n> ```sh\n> <Foo/>\n> ](/a)\n> ```\n> \n> After.\n",
+    );
+  });
+
   it("rule 1: normalizes CRLF and CR to LF", () => {
     expect(mdxToMarkdown("# T\r\n\r\nline one\rline two\n", opts)).toBe(
       "# T\n\nline one\nline two\n",

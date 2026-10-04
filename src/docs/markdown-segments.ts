@@ -60,8 +60,8 @@ export const segmentFences = (text: string): Segment[] => {
   return segments;
 };
 
-/** The start index and attributes of a `<Callout>` opened but not closed within `text`. */
-type UnmatchedCallout = { readonly start: number; readonly attrs: string };
+/** The start/end index and attributes of a `<Callout>` opened but not closed within `text`. */
+type UnmatchedCallout = { readonly start: number; readonly end: number; readonly attrs: string };
 
 /** Finds a trailing `<Callout>` open tag in `text` with no matching `</Callout>` after it. */
 const findUnmatchedCallout = (text: string): UnmatchedCallout | null => {
@@ -71,7 +71,9 @@ const findUnmatchedCallout = (text: string): UnmatchedCallout | null => {
   let match = CALLOUT_OPEN_OR_CLOSE.exec(text);
   while (match !== null) {
     if (match[1] !== undefined) {
-      if (depth === 0) pending = { start: match.index, attrs: match[1] };
+      if (depth === 0) {
+        pending = { start: match.index, end: match.index + match[0].length, attrs: match[1] };
+      }
       depth++;
     } else {
       depth = Math.max(0, depth - 1);
@@ -82,36 +84,52 @@ const findUnmatchedCallout = (text: string): UnmatchedCallout | null => {
   return depth > 0 ? pending : null;
 };
 
+/** One run of a `<Callout>` body: `isFence` chunks are kept byte-for-byte, others go through rule 4/5. */
+type BodyChunk = { readonly isFence: boolean; readonly text: string };
+
 /**
  * @function mergeCalloutSegments
  * @param segments {Segment[]} the result of `segmentFences`
+ * @param processBodyProse {(text: string) => string} rules 4/5 (JSX removal, link absolutizing),
+ *   run on every non-fence chunk of a merged callout's body before it is quoted; fence chunks of
+ *   the body are passed to `toBlockquote` untouched
  * @param toBlockquote {(attrs: string, body: string) => string} rule 3's attrs+body-to-blockquote
  *   converter
  * @returns {Segment[]} the same segments, except a `<Callout>` opened in one prose segment and
  *   closed in a later one (its body holds a fenced code block, so `segmentFences` split it out)
- *   becomes a single, already-converted blockquote segment
+ *   becomes a single, already-converted blockquote segment marked `isFence: true` so the caller
+ *   does not run prose rules over it again
  */
 export const mergeCalloutSegments = (
   segments: Segment[],
+  processBodyProse: (text: string) => string,
   toBlockquote: (attrs: string, body: string) => string,
 ): Segment[] => {
   const merged: Segment[] = [];
-  let pending: string[] | null = null;
+  let attrs: string | null = null;
+  let chunks: BodyChunk[] | null = null;
   for (const segment of segments) {
-    if (pending !== null) {
-      pending.push(...segment.lines);
-      const joined = pending.join("\n");
-      const closeAt = joined.indexOf(CALLOUT_CLOSE_TAG);
-      if (closeAt === -1) continue;
-      const calloutText = joined.slice(0, closeAt + CALLOUT_CLOSE_TAG.length);
-      const remainder = joined.slice(closeAt + CALLOUT_CLOSE_TAG.length);
-      const match = /^<Callout([^>]*)>([\s\S]*)<\/Callout>$/.exec(calloutText);
-      const blockquote = match ? toBlockquote(match[1] ?? "", match[2] ?? "") : calloutText;
-      merged.push({ isFence: false, lines: blockquote.split("\n") });
-      pending = null;
+    if (chunks !== null) {
+      const text = segment.lines.join("\n");
+      const closeAt = segment.isFence ? -1 : text.indexOf(CALLOUT_CLOSE_TAG);
+      if (closeAt === -1) {
+        chunks.push({ isFence: segment.isFence, text });
+        continue;
+      }
+      const bodyPart = text.slice(0, closeAt);
+      const remainder = text.slice(closeAt + CALLOUT_CLOSE_TAG.length);
+      if (bodyPart.length > 0) chunks.push({ isFence: false, text: bodyPart });
+      const body = chunks
+        .map((chunk) => (chunk.isFence ? chunk.text : processBodyProse(chunk.text)))
+        .join("\n");
+      const blockquote = toBlockquote(attrs ?? "", body);
+      merged.push({ isFence: true, lines: blockquote.split("\n") });
+      chunks = null;
+      attrs = null;
       if (remainder.length > 0) {
         const rest = mergeCalloutSegments(
           [{ isFence: false, lines: remainder.split("\n") }],
+          processBodyProse,
           toBlockquote,
         );
         merged.push(...rest);
@@ -130,8 +148,13 @@ export const mergeCalloutSegments = (
     }
     const before = text.slice(0, unmatched.start);
     if (before.length > 0) merged.push({ isFence: false, lines: before.split("\n") });
-    pending = text.slice(unmatched.start).split("\n");
+    attrs = unmatched.attrs;
+    chunks = [{ isFence: false, text: text.slice(unmatched.end) }];
   }
-  if (pending !== null) merged.push({ isFence: false, lines: pending });
+  if (chunks !== null) {
+    // Unterminated callout (malformed input): best-effort passthrough, raw.
+    const body = chunks.map((chunk) => chunk.text).join("\n");
+    merged.push({ isFence: false, lines: body.split("\n") });
+  }
   return merged;
 };
