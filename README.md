@@ -12,6 +12,7 @@ The Next.js server plumbing the haruhime.moe tools share. [packs.haruhime.moe](h
 - **`/seo`:** Next.js metadata that keeps each page's canonical, og:url and preview image together, robots.txt with the AI crawler stance written down, sitemap entries with honest lastmod, schema.org JSON-LD builders, and llms.txt. No runtime imports; all four haruhime.moe sites use it.
 - **`/testing`:** Vitest helpers: one in-memory MongoDB per run, an msw server that refuses unhandled requests, and a fake env.
 - **`/api-keys`:** the shared key format (an app prefix like `hpk_` plus 32 random bytes), a key store over `api_keys`, and the `/api/v1` guard with the standard limits.
+- **`/vcs`:** document history in MongoDB on top of `@haruhimemoe/vcs`: one line of revisions per document, saves merged onto whatever landed since their base, revert, diffs, and autosave pruning.
 
 Every name, path, limit and message comes from the caller. There is no root entry point; import a subpath.
 
@@ -34,6 +35,7 @@ bun add @haruhimemoe/next-kit zod
 | `seo` | `next` ^16.3.6 types only (nothing loads at runtime) |
 | `testing` | `vitest` ^5.0.1, `msw` ^2.15.0, `mongodb-memory-server` ^11.3.0 |
 | `api-keys` | `mongodb` ^7.6.0 |
+| `vcs` | `mongodb` ^7.6.0, `@haruhimemoe/vcs` ^0.1.0 |
 
 ## Use
 
@@ -289,6 +291,34 @@ Since 0.3.0. Every helper takes the app's `Site`: `name`, `url` (the canonical o
 | `API_LIMITS` | The standard fixed-window limits every haruhime API uses: `api` (60/min per user), `apiWrite` (10/min per user, also counted by `api`), `authFail` (20/min per IP), `keyCreate` (10/hour per user). |
 | `API_SERVER_ERROR` | The 500 message when a key lookup or handler throws. |
 | `createApiKeyGuard({ store, limiter, resolveCaller, messages, limits?, now? })` | Returns `withApiKey(handler)`: a `/api/v1` route handler that runs `handler(request, caller, context)` only for a good key under `API_LIMITS`, with `RateLimit-*` headers, `Cache-Control: no-store`, a 401 with `WWW-Authenticate: Bearer` for a missing or bad key (counted per IP), and a JSON 500 for a thrown error. No CORS headers: the API is for servers and bots. |
+
+### vcs
+
+| Export | What it does |
+| --- | --- |
+| `createRevisionStore({ db, collection, codec?, check?, maxRevisions?, maxBytes?, now? })` | A document history over one collection. `codec` is a `@haruhimemoe/vcs` codec (keyed lists, text and ignored paths). `check(value, kind)` runs before every write; throw to refuse (a content filter, say). Throws `TypeError` for a missing collection or a non-positive limit. |
+| `revisionIndexSpecs(collection)` | Unique `(docId, seq)`, `authorId`, and `(docId, kind, createdAt)`, for the app's own index list. |
+| `DEFAULT_MAX_REVISIONS` | 1000 per document; past it the oldest autosaves go. Saves are never deleted. |
+| `DEFAULT_MAX_BYTES` | 1,000,000 bytes of canonical JSON per value; past it a write throws `RangeError`. |
+| `COMMIT_ATTEMPTS` | 3: how often a commit reruns when another writer takes its seq. |
+| `DEFAULT_LIST_LIMIT`, `MAX_LIST_LIMIT` | History page size: 50 by default, 200 at most. |
+
+The store's methods:
+
+| Method | What it does |
+| --- | --- |
+| `create(docId, value, author, message?)` | The root revision (seq 0). Throws if the document already has history. |
+| `head(docId)`, `get(docId, id)` | One revision with its value, or null. |
+| `list(docId, { before?, limit? })` | Revisions newest first, without values. `before` pages by seq. |
+| `commit({ docId, base, value, author, kind?, message? })` | `base` is the `{ id, seq }` the client started from; `kind` is `"save"` (default) or `"autosave"`. Returns `committed` (base was the head), `merged` (the head moved on and the value merged onto it cleanly, written as kind `merge`), `unchanged` (the result equals the head, ignoring ignored paths; nothing written), `conflict` (nothing written; `head` and the `ValueMerge` with its conflicts, so the client can resolve and commit again on `head`) or `missing` (no such document, or no revision at or before `base` survives). A pruned `base` merges from the nearest earlier revision. |
+| `revert(docId, id, author)` | Commits that revision's value again, as kind `revert`. |
+| `diff(docId, fromId, toId)` | The `Change[]` between two revisions, or null. |
+| `renameAuthor(authorId, name)` | Rewrites the author's name on every revision (renames, deleted accounts). |
+| `removeDoc(docId)` | Deletes the whole history. |
+| `pruneAutosaves(docId, olderThan)` | Deletes autosaves older than the date that a later save, merge or revert follows. |
+| `indexSpecs()`, `ensureIndexes()` | The indexes, and building them (logs, never throws). |
+
+Who may read a history, and the routes around it, stay the app's.
 
 ## Migration
 

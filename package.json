@@ -62,6 +62,10 @@
       "types": "./dist/api-keys/index.d.ts",
       "default": "./dist/api-keys/index.js"
     },
+    "./vcs": {
+      "types": "./dist/vcs/index.d.ts",
+      "default": "./dist/vcs/index.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -93,6 +97,7 @@
   "peerDependencies": {
     "@haruhimemoe/osu": "^0.2.0 || ^0.3.0 || ^0.4.0",
     "@haruhimemoe/ui": "^0.5.0 || ^0.6.0 || ^0.7.0 || ^0.8.0 || ^0.9.0",
+    "@haruhimemoe/vcs": "^0.1.0",
     "better-auth": "^1.7.5",
     "mongodb": "^7.6.0",
     "mongodb-memory-server": "^11.3.0",
@@ -108,6 +113,9 @@
       "optional": true
     },
     "@haruhimemoe/ui": {
+      "optional": true
+    },
+    "@haruhimemoe/vcs": {
       "optional": true
     },
     "better-auth": {
@@ -139,6 +147,7 @@
     "@biomejs/biome": "2.5.14",
     "@haruhimemoe/osu": "0.2.0",
     "@haruhimemoe/ui": "0.5.0",
+    "@haruhimemoe/vcs": "file:../vcs",
     "@testing-library/dom": "10.4.2",
     "@testing-library/react": "16.3.3",
     "@types/node": "26.6.2",

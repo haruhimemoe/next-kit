@@ -16,8 +16,19 @@ import * as env from "../dist/env/index.js";
 import * as mongo from "../dist/mongo/index.js";
 import * as seo from "../dist/seo/index.js";
 import * as server from "../dist/server/index.js";
+import * as vcs from "../dist/vcs/index.js";
 
-const ENTRIES = ["server", "env", "mongo", "auth", "auth-react", "testing", "seo", "api-keys"];
+const ENTRIES = [
+  "server",
+  "env",
+  "mongo",
+  "auth",
+  "auth-react",
+  "testing",
+  "seo",
+  "api-keys",
+  "vcs",
+];
 for (const entry of ENTRIES) {
   for (const file of ["index.js", "index.d.ts"]) {
     assert.ok(existsSync(new URL(`../dist/${entry}/${file}`, import.meta.url)), `${entry} ${file}`);
@@ -82,4 +93,8 @@ assert.match(seo.llmsTxt({ title: "t", summary: "s", sections: [] }), /^# t\n\n>
 
 assert.match(apiKeys.generateApiKey("hpl_"), /^hpl_[A-Za-z0-9_-]{43}$/);
 assert.equal(apiKeys.API_LIMITS.api.limit, 60);
+assert.equal(
+  vcs.createRevisionStore({ db: async () => null, collection: "r" }).indexSpecs().length,
+  3,
+);
 console.log("smoke: ok");

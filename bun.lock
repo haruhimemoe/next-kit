@@ -8,6 +8,7 @@
         "@biomejs/biome": "2.5.14",
         "@haruhimemoe/osu": "0.2.0",
         "@haruhimemoe/ui": "0.5.0",
+        "@haruhimemoe/vcs": "file:../vcs",
         "@testing-library/dom": "10.4.2",
         "@testing-library/react": "16.3.3",
         "@types/node": "26.6.2",
@@ -28,8 +29,9 @@
         "zod": "4.6.5",
       },
       "peerDependencies": {
-        "@haruhimemoe/osu": "^0.2.0 || ^0.3.0",
-        "@haruhimemoe/ui": "^0.5.0",
+        "@haruhimemoe/osu": "^0.2.0 || ^0.3.0 || ^0.4.0",
+        "@haruhimemoe/ui": "^0.5.0 || ^0.6.0 || ^0.7.0 || ^0.8.0 || ^0.9.0",
+        "@haruhimemoe/vcs": "^0.1.0",
         "better-auth": "^1.7.5",
         "mongodb": "^7.6.0",
         "mongodb-memory-server": "^11.3.0",
@@ -43,6 +45,7 @@
       "optionalPeers": [
         "@haruhimemoe/osu",
         "@haruhimemoe/ui",
+        "@haruhimemoe/vcs",
         "better-auth",
         "mongodb",
         "mongodb-memory-server",
@@ -130,6 +133,8 @@
     "@haruhimemoe/osu": ["@haruhimemoe/osu@0.2.0", "", { "peerDependencies": { "zod": "^4.0.16" } }, "sha512-m7H/a2msQRteu+L4oSmte3VvQRzu2PgncGBh2/dbtTcpzPNg7Qq8YzJir/UiWHHesF1ppfGgK5P4Mmxb2mWGZA=="],
 
     "@haruhimemoe/ui": ["@haruhimemoe/ui@0.5.0", "", { "dependencies": { "tailwind-merge": "3.7.0" }, "peerDependencies": { "next": ">=16.0.0 <17", "react": ">=19.0.0", "react-dom": ">=19.0.0", "tailwindcss": ">=4.1.0 <5" } }, "sha512-1j580cNuAyaoUZ8iZ+2zJKUDLbG1BxZvB4UzrWRlxzoTOVfrzgLpyan7qDW2zR7/U2muShSq0yOgOefw4mjnXQ=="],
+
+    "@haruhimemoe/vcs": ["@haruhimemoe/vcs@file:../vcs", { "devDependencies": { "@biomejs/biome": "2.5.14", "@types/node": "26.6.2", "@vitest/coverage-v8": "5.0.1", "typescript": "7.0.2", "vitest": "5.0.1" } }],
 
     "@img/colour": ["@img/colour@1.1.0", "", {}, "sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ=="],
 

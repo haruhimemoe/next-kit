@@ -25,7 +25,13 @@ const PEERS = [
   "react-dom",
   "@types/react",
   "@types/node",
-].map((name) => `${name}@${pkg.devDependencies[name]}`);
+].map((name) => {
+  const version = pkg.devDependencies[name];
+  // A peer still in development (file:../x) installs from its folder, resolved from here.
+  return version.startsWith("file:")
+    ? path.resolve(root, version.slice("file:".length))
+    : `${name}@${version}`;
+});
 const dir = mkdtempSync(path.join(tmpdir(), "next-kit-consumer-"));
 const run = (command, args, cwd = dir) =>
   execFileSync(command, args, {
@@ -39,6 +45,8 @@ const run = (command, args, cwd = dir) =>
 const CONSUMER = `import { z } from "zod";
 import { MongoClient } from "mongodb";
 import { createApiKeyStore, type ApiKeyStore } from "@haruhimemoe/next-kit/api-keys";
+import { createRevisionStore, type CommitResult, type RevisionStore } from "@haruhimemoe/next-kit/vcs";
+import { defineCodec } from "@haruhimemoe/vcs";
 import { createOsuAuth, getOsuUser, type OsuAuth, type OsuSessionUser } from "@haruhimemoe/next-kit/auth";
 import { createAccountStore, createAuthComponents, createSignedInMarker, osuAvatarSrc, osuSignIn, safeNextPath, type Account, type BoundAccountMenuProps } from "@haruhimemoe/next-kit/auth-react";
 import { createServerEnv, EnvError, OSU_APP_PLACEHOLDERS, OSU_APP_SECRET_KEYS, osuAppEnvSchema } from "@haruhimemoe/next-kit/env";
@@ -61,6 +69,10 @@ const mongo = createMongo({ dbName: "x", globalKey: "__x", uri: () => "mongodb:/
 const limiter = createRateLimiter({ db: mongo.connectedDb });
 const client = new MongoClient("mongodb://127.0.0.1:1");
 const keyStore: ApiKeyStore = createApiKeyStore({ prefix: "hpl_", db: async () => client.db("x") });
+type Pool = { name: string; slots: { id: string }[] };
+const revisions: RevisionStore<Pool> = createRevisionStore<Pool>({ db: async () => client.db("x"), collection: "pool_revisions", codec: defineCodec({ lists: { slots: (s: { id: string }) => s.id } }) });
+const commitResult: CommitResult<Pool> = { status: "missing" };
+if (revisions.indexSpecs().length !== 3 || commitResult.status !== "missing") throw new Error("vcs");
 type User = OsuAuth["$Infer"]["Session"]["user"];
 const osuId: User["osuId"] = 2;
 const user: OsuSessionUser | null = null;

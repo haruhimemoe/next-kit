@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+- `vcs` entry point: `createRevisionStore`, document history in MongoDB on top of `@haruhimemoe/vcs` (a new optional peer). Saves name their base revision and merge onto anything newer; conflicts write nothing and come back for the client to resolve. Also revert, diffs, author renames, history removal and autosave pruning.
+
 ## [0.5.0] - 2026-10-04
 
 ### Added

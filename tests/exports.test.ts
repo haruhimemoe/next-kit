@@ -7,7 +7,7 @@
  *       nothing at runtime, and no source file passes 200 lines.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Sat Oct 3, 2026
+ * @modified Sun Oct 4, 2026
  */
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -20,9 +20,20 @@ import * as mongo from "../src/mongo/index.js";
 import * as seo from "../src/seo/index.js";
 import * as server from "../src/server/index.js";
 import * as testing from "../src/testing/index.js";
+import * as vcs from "../src/vcs/index.js";
 
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-const ENTRIES = ["server", "env", "mongo", "auth", "auth-react", "testing", "seo", "api-keys"];
+const ENTRIES = [
+  "server",
+  "env",
+  "mongo",
+  "auth",
+  "auth-react",
+  "testing",
+  "seo",
+  "api-keys",
+  "vcs",
+];
 
 /** Every bare or node: module a src/ file loads at runtime, following relative imports. */
 const loads = (file: URL, seen = new Set<string>(), found = new Set<string>()) => {
@@ -261,4 +272,16 @@ it("exports the documented api-keys API", () => {
       "isApiKeyFormat",
     ]
   `);
+});
+
+it("exports the documented vcs API", () => {
+  expect(Object.keys(vcs).sort()).toEqual([
+    "COMMIT_ATTEMPTS",
+    "DEFAULT_LIST_LIMIT",
+    "DEFAULT_MAX_BYTES",
+    "DEFAULT_MAX_REVISIONS",
+    "MAX_LIST_LIMIT",
+    "createRevisionStore",
+    "revisionIndexSpecs",
+  ]);
 });
