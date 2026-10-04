@@ -20,29 +20,33 @@ export type RevisionDoc<T> = Omit<Revision<T>, "id" | "createdAt"> & {
 export const META_PROJECTION = { value: 0 } as const;
 
 /**
- * @function toRevision
- * @param doc {RevisionDoc<T>} a stored revision
- * @returns {Revision<T>} the public shape (id, ISO createdAt)
+ * @function toMeta
+ * @param doc {Omit<RevisionDoc<unknown>, "value">} a stored revision without its value
+ * @returns {RevisionMeta} the public metadata, field by field (stray stored fields stay out)
  */
-export const toRevision = <T>({ _id, createdAt, ...rest }: RevisionDoc<T>): Revision<T> => ({
-  id: _id,
-  ...rest,
-  createdAt: createdAt.toISOString(),
+export const toMeta = (doc: Omit<RevisionDoc<unknown>, "value">): RevisionMeta => ({
+  id: doc._id,
+  docId: doc.docId,
+  seq: doc.seq,
+  kind: doc.kind,
+  valueHash: doc.valueHash,
+  authorId: doc.authorId,
+  authorName: doc.authorName,
+  message: doc.message,
+  createdAt: doc.createdAt.toISOString(),
+  ...(doc.base === undefined ? {} : { base: doc.base }),
+  ...(doc.forkOf === undefined ? {} : { forkOf: doc.forkOf }),
+  ...(doc.upstream === undefined ? {} : { upstream: doc.upstream }),
 });
 
 /**
- * @function toMeta
- * @param doc {Omit<RevisionDoc<unknown>, "value">} a stored revision without its value
- * @returns {RevisionMeta} the public metadata
+ * @function toRevision
+ * @param doc {RevisionDoc<T>} a stored revision
+ * @returns {Revision<T>} the public shape (id, ISO createdAt) with its value
  */
-export const toMeta = ({
-  _id,
-  createdAt,
-  ...rest
-}: Omit<RevisionDoc<unknown>, "value">): RevisionMeta => ({
-  id: _id,
-  ...rest,
-  createdAt: createdAt.toISOString(),
+export const toRevision = <T>(doc: RevisionDoc<T>): Revision<T> => ({
+  ...toMeta(doc),
+  value: doc.value,
 });
 
 /**

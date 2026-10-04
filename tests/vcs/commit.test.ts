@@ -154,6 +154,41 @@ describe("commit", () => {
     });
   });
 
+  it("returns missing for a base id that names another revision or document", async () => {
+    const root = await store.create("p", pool("a"), alice);
+    const other = await store.create("q", pool("z"), alice);
+    const head = ok(
+      await store.commit({ docId: "p", base: root, value: pool("b"), author: alice }),
+    );
+    const value = pool("c");
+    expect(
+      await store.commit({ docId: "p", base: { id: other.id, seq: 0 }, value, author: bob }),
+    ).toEqual({
+      status: "missing",
+    });
+    expect(
+      await store.commit({ docId: "p", base: { id: root.id, seq: head.seq }, value, author: bob }),
+    ).toEqual({
+      status: "missing",
+    });
+  });
+
+  it("keeps a written revision when pruning afterwards fails", async () => {
+    const root = await store.create("p", pool("a"), alice);
+    const count = vi.spyOn(
+      (await connectedDb()).collection("revs").constructor.prototype,
+      "countDocuments",
+    );
+    count.mockRejectedValue(new Error("prune down"));
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(
+      (await store.commit({ docId: "p", base: root, value: pool("b"), author: alice })).status,
+    ).toBe("committed");
+    expect(error).toHaveBeenCalled();
+    count.mockRestore();
+    error.mockRestore();
+  });
+
   it("returns missing when nothing at or before the base survives", async () => {
     const root = await store.create("p", pool("a"), alice);
     ok(await store.commit({ docId: "p", base: root, value: pool("b"), author: alice }));

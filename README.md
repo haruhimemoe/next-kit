@@ -318,6 +318,13 @@ The store's methods:
 | `pruneAutosaves(docId, olderThan)` | Deletes autosaves older than the date that a later save, merge or revert follows. |
 | `indexSpecs()`, `ensureIndexes()` | The indexes, and building them (logs, never throws). |
 
+Notes:
+
+- Run `ensureIndexes()` (or build `revisionIndexSpecs` with your own list) before the first write. The unique `(docId, seq)` index is what stops two writers from both taking the next seq.
+- `check` can run more than once for one commit (retries), so keep it free of side effects.
+- A stale autosave that merges is kept as kind `merge`, like a save; only plain autosaves are pruned.
+- A `base` whose id is another document's revision, or whose seq doesn't match, is `missing`. Only an id that no longer exists (pruned) falls back to the nearest earlier revision.
+
 Who may read a history, and the routes around it, stay the app's.
 
 ## Migration

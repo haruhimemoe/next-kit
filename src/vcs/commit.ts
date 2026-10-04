@@ -13,7 +13,7 @@
 import { mergeValue, type Revision } from "@haruhimemoe/vcs";
 import { isDuplicateKeyError } from "../mongo/duplicate.js";
 import { COMMIT_ATTEMPTS } from "./options.js";
-import { readAtOrBefore, readHead, readOne, type StoreContext } from "./read.js";
+import { readAtOrBefore, readById, readHead, readOne, type StoreContext } from "./read.js";
 import type { CommitInput, CommitResult, RevisionAuthor } from "./types.js";
 import { insertRevision, type NewRevision, valueHash } from "./write.js";
 
@@ -60,6 +60,18 @@ const writeNext = async <T>(
   }
 };
 
+/** The client's base, or the nearest earlier revision if it was pruned. null when the id
+ *  belongs to another revision or document, or nothing earlier survives. */
+const mergeBase = async <T>(
+  ctx: StoreContext<T>,
+  docId: string,
+  base: { id: string; seq: number },
+): Promise<Revision<T> | null> => {
+  const found = await readById(ctx, base.id);
+  if (found) return found.docId === docId && found.seq === base.seq ? found : null;
+  return readAtOrBefore(ctx, docId, base.seq - 1);
+};
+
 const tooBusy = (docId: string): Error =>
   new Error(`commit: ${docId} kept changing; gave up after ${COMMIT_ATTEMPTS} attempts`);
 
@@ -82,8 +94,7 @@ export const commitRevision = async <T>(
     if (base.id === head.id) {
       result = await writeNext(ctx, head, { docId, kind, value, author, message }, false);
     } else {
-      const from =
-        (await readOne(ctx, docId, base.id)) ?? (await readAtOrBefore(ctx, docId, base.seq - 1));
+      const from = await mergeBase(ctx, docId, base);
       if (!from) return { status: "missing" };
       const merged = mergeValue(from.value, value, head.value, ctx.options.codec);
       if (!merged.clean) return { status: "conflict", head, merged };

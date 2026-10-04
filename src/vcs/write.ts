@@ -66,7 +66,10 @@ export const insertRevision = async <T>(
   };
   const collection = await ctx.collection();
   await collection.insertOne(doc as never);
-  await pruneOverCap(ctx, input.docId, input.seq);
+  // Best effort: the revision is written, so a failed prune must not look like a failed save.
+  await pruneOverCap(ctx, input.docId, input.seq).catch((error: unknown) => {
+    console.error(`revisions: pruning ${input.docId} failed`, error);
+  });
   return toRevision(doc);
 };
 

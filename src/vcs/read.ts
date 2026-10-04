@@ -52,6 +52,15 @@ export const readOne = async <T>(
   return doc ? toRevision(doc as RevisionDoc<T>) : null;
 };
 
+/** A revision by id alone, whatever its document, or null. */
+export const readById = async <T>(
+  ctx: StoreContext<T>,
+  id: string,
+): Promise<Revision<T> | null> => {
+  const doc = await (await ctx.collection()).findOne({ _id: id } as never);
+  return doc ? toRevision(doc as RevisionDoc<T>) : null;
+};
+
 /** The revision with the largest seq at or below `seq`, or null. */
 export const readAtOrBefore = async <T>(
   ctx: StoreContext<T>,
@@ -71,8 +80,11 @@ export const readList = async <T>(
   docId: string,
   { before, limit = DEFAULT_LIST_LIMIT }: { before?: number; limit?: number } = {},
 ): Promise<RevisionMeta[]> => {
-  const size = Math.max(1, Math.min(MAX_LIST_LIMIT, Math.floor(limit) || DEFAULT_LIST_LIMIT));
-  const filter = before === undefined ? { docId } : { docId, seq: { $lt: before } };
+  const size = Number.isFinite(limit)
+    ? Math.max(1, Math.min(MAX_LIST_LIMIT, Math.floor(limit)))
+    : DEFAULT_LIST_LIMIT;
+  const filter =
+    before !== undefined && Number.isInteger(before) ? { docId, seq: { $lt: before } } : { docId };
   const docs = await (await ctx.collection())
     .find(filter, { projection: META_PROJECTION, sort: { seq: -1 }, limit: size })
     .toArray();

@@ -102,7 +102,13 @@ describe("create, head, get, list", () => {
     expect(page[0]).not.toHaveProperty("value");
     expect(page[0]?.createdAt).toBe("2026-10-04T12:00:00.000Z");
     expect((await store.list("p1", { before: 2 })).map((r) => r.seq)).toEqual([1, 0]);
-    expect(await store.list("p1", { limit: 0 })).toHaveLength(4);
+    expect(await store.list("p1", { limit: 0 })).toHaveLength(1);
+    expect(await store.list("p1", { before: Number.NaN })).toHaveLength(4);
+    await db()
+      .collection("pool_revisions")
+      .updateMany({}, { $set: { stray: 1 } });
+    expect(await store.head("p1")).not.toHaveProperty("stray");
+    expect((await store.list("p1"))[0]).not.toHaveProperty("stray");
     expect(await store.list("p1", { limit: 1000 })).toHaveLength(4);
   });
 });
