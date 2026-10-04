@@ -9,7 +9,7 @@
  * @modified Sat Oct 3, 2026
  */
 
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, realpathSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { argv, cwd, exit } from "node:process";
 import { pathToFileURL } from "node:url";
@@ -42,7 +42,15 @@ export const runCheck = (root: string, log: (line: string) => void = console.log
 };
 
 /* v8 ignore start */
-if (import.meta.url === pathToFileURL(argv[1] ?? "").href) {
+/** True when this file is the one Node was asked to run, even through a symlinked bin: a
+ * symlinked `next-kit` resolves argv[1] to the link, while import.meta.url is the realpath. */
+const isMainEntry = (): boolean => {
+  const entry = argv[1];
+  if (!entry || !existsSync(entry)) return false;
+  return pathToFileURL(realpathSync(entry)).href === import.meta.url;
+};
+
+if (isMainEntry()) {
   const [command, dir] = argv.slice(2);
   if (command !== "check") {
     console.log("usage: next-kit check [dir]");
