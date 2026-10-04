@@ -31,7 +31,7 @@ bun add @haruhimemoe/next-kit zod
 | `env` | nothing else |
 | `mongo` | `mongodb` ^7.6.0, `mongoose` ^9.10.2 |
 | `auth` | `better-auth` ^1.7.5, `mongodb`, `@haruhimemoe/osu` 0.2 or 0.3 |
-| `auth-react` | `react` ^19.3.0, `next` ^16.3.6, `@haruhimemoe/ui` ^0.5.0 \|\| ^0.6.0 \|\| ^0.7.0 \|\| ^0.8.0 \|\| ^0.9.0 (with its theme set up) |
+| `auth-react` | `react` ^19.3.0, `next` ^16.3.6, `@haruhimemoe/ui` ^0.5.0 \|\| ^0.6.0 \|\| ^0.7.0 \|\| ^0.8.0 \|\| ^0.9.0 \|\| ^0.10.0 (with its theme set up) |
 | `seo` | `next` ^16.3.6 types only (nothing loads at runtime) |
 | `testing` | `vitest` ^5.0.1, `msw` ^2.15.0, `mongodb-memory-server` ^11.3.0 |
 | `api-keys` | `mongodb` ^7.6.0 |
@@ -152,15 +152,84 @@ export default async () => sitemapEntries(SEO_SITE, [["/", "/search"], pools.map
 export const GET = () => textResponse(llmsTxt({ title: "pools.haruhime.moe", summary: SEO_SITE.description, sections }));
 ```
 
+### Docs (./docs)
+
+One registry per app, built from its docs, guides and legal entries; the crawl helpers and a dynamic route are built on top of it.
+
+```ts
+// src/constants/content.ts
+import { defineContent } from "@haruhimemoe/next-kit/docs";
+
+export const CONTENT = defineContent({
+  docs: [{ slug: "api", title: "API", description: "The /api/v1 reference.", lastUpdated: "2026-10-04" }],
+  guides: [{ slug: "make-a-pack", title: "Make a pack", description: "Build your first mappool.", lastUpdated: "2026-10-04" }],
+  legal: [
+    { slug: "terms", title: "Terms of service", description: "The rules for using pools.", lastUpdated: "2026-10-04" },
+    { slug: "privacy", title: "Privacy policy", description: "What pools stores and why.", lastUpdated: "2026-10-04" },
+  ],
+});
+
+// src/app/docs/[slug]/page.tsx (and guides/, legal/, the same shape)
+import { findEntry } from "@haruhimemoe/next-kit/docs";
+import { readContentMarkdown } from "@haruhimemoe/next-kit/docs/files";
+import { CONTENT } from "../../../constants/content";
+
+export default async function DocPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const entry = findEntry(CONTENT, "docs", slug);
+  if (!entry) return notFound();
+  const markdown = await readContentMarkdown(CONTENT, "docs", slug, { siteUrl: SEO_SITE.url });
+  return <Markdown>{markdown}</Markdown>;
+}
+
+// src/app/llms.txt/route.ts
+import { contentLlmsTxt } from "@haruhimemoe/next-kit/docs";
+import { textResponse } from "@haruhimemoe/next-kit/seo";
+
+export const GET = () =>
+  textResponse(contentLlmsTxt({ site: SEO_SITE, title: "pools.haruhime.moe", summary: SEO_SITE.description, content: CONTENT }));
+
+// src/app/llms-full.txt/route.ts
+import { contentLlmsFull } from "@haruhimemoe/next-kit/docs";
+import { readContentMarkdown } from "@haruhimemoe/next-kit/docs/files";
+
+export const GET = async () =>
+  textResponse(
+    await contentLlmsFull({
+      site: SEO_SITE, title: "pools.haruhime.moe", content: CONTENT,
+      read: (section, slug) => readContentMarkdown(CONTENT, section, slug, { siteUrl: SEO_SITE.url }),
+    }),
+  );
+
+// src/app/sitemap.ts
+import { contentSitemap } from "@haruhimemoe/next-kit/docs";
+
+export default async () => sitemapEntries(SEO_SITE, [["/", "/search"], contentSitemap(CONTENT)]);
+
+// next.config.ts
+import { contentRewrites } from "@haruhimemoe/next-kit/docs";
+
+export default { async rewrites() { return contentRewrites(); } };
+```
+
 ## Standards check
 
-`next-kit check [dir]` walks `src/app` (default: the current directory) and confirms every standard route exists, so CI catches a missing one before a page does:
+`next-kit check [dir]` walks `src/app` and, when it exists, `content/` (both under `dir`, default: the current directory) and confirms every standard file exists, so CI catches a missing one before a page does. It checks files only; the content registry itself is never parsed.
 
 ```sh
 bunx next-kit check
 ```
 
-It always checks the crawl files: `robots.ts`, `sitemap.ts`, `llms.txt/route.ts`, `llms-full.txt/route.ts`, and `.well-known/security.txt/route.ts` (each also accepted as a route handler, like `robots.txt/route.ts`). Once an app has `src/app/api/v1/`, it also checks the public API: `api/v1/me/route.ts`, `api/v1/openapi.json/route.ts`, `api/me/api-key/route.ts`, and a `docs/api` page (a dynamic `docs/[slug]/page.tsx` counts too). Route groups like `(public)/` are ignored, since they don't change the URL.
+Every app is checked against:
+
+- **crawl** (always): `robots.ts`, `sitemap.ts`, `llms.txt/route.ts`, `llms-full.txt/route.ts`, and `.well-known/security.txt/route.ts` (each also accepted as a route handler, like `robots.txt/route.ts`).
+- **brand** (always): `brand/page.tsx`.
+- **legal** (always): `legal/page.tsx`, `legal/[x]/page.tsx`, `legal/[x]/md/route.ts` (any dynamic segment name), and `content/legal/terms.mdx` plus `content/legal/privacy.mdx`.
+- **docs**, once `src/app/api/v1` exists or any `content/docs` file does: `docs/page.tsx`, `docs/[x]/page.tsx`, `docs/[x]/md/route.ts`.
+- **guides**, only once a `content/guides` file exists: the same three files under `guides/`. An app with no guides is never asked for them.
+- **api**, once `src/app/api/v1` exists: `api/v1/me/route.ts`, `api/v1/openapi.json/route.ts`, `api/me/api-key/route.ts`, and `content/docs/api.mdx`.
+
+Route groups like `(public)/` are ignored, since they don't change the URL. A missing route file prints as `missing src/app/<path>`; a missing content file prints as `missing content/<path>`.
 
 The command prints one `pass` or `FAIL` line per standard, names each missing file, and exits 1 on a failure (or when `src/app` is missing). Add it to CI:
 
