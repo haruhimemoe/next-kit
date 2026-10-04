@@ -6,7 +6,7 @@
  *       caller passes them here.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Sep 28, 2026
+ * @modified Sat Oct 3, 2026
  */
 
 /** RFC 9116 asks for an Expires less than a year out. */
@@ -25,22 +25,26 @@ export type SecurityTxtOptions = {
   policyUrl: string;
   /** When the file is built (build time for a static route). */
   now: Date;
+  /** A preferred report URL (like a GitHub advisory form), listed before the email. */
+  contactUrl?: string;
 };
 
 /**
  * @function buildSecurityTxt
- * @param options {SecurityTxtOptions} contact, site, policy and build time
- * @returns {string} the security.txt body: Contact, Expires, Preferred-Languages, Canonical,
- *          Policy, one field per line, ending in one newline
+ * @param options {SecurityTxtOptions} contact, site, policy, build time, and optional contact URL
+ * @returns {string} the security.txt body: Contact (URL first if present), Contact (mailto),
+ *          Expires, Preferred-Languages, Canonical, Policy, one field per line, ending in one newline
  */
 export const buildSecurityTxt = ({
   contactEmail,
   siteUrl,
   policyUrl,
   now,
+  contactUrl,
 }: SecurityTxtOptions): string => {
   const expires = new Date(now.getTime() + SECURITY_TXT_LIFETIME_DAYS * 86_400_000);
   const lines = [
+    ...(contactUrl ? [`Contact: ${contactUrl}`] : []),
     `Contact: mailto:${contactEmail}`,
     `Expires: ${expires.toISOString()}`,
     "Preferred-Languages: en",

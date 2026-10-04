@@ -50,3 +50,21 @@ describe("buildSecurityTxt", () => {
     expect(text.endsWith("\n\n")).toBe(false);
   });
 });
+
+describe("buildSecurityTxt contactUrl", () => {
+  it("puts the URL contact first", () => {
+    const lines = buildSecurityTxt({
+      ...SITE,
+      now: NOW,
+      contactUrl: "https://github.com/x/security",
+    }).split("\n");
+    expect(lines[0]).toBe("Contact: https://github.com/x/security");
+    expect(lines[1]).toBe("Contact: mailto:contact@haruhime.moe");
+  });
+
+  it("is unchanged without it", () => {
+    expect(buildSecurityTxt({ ...SITE, now: NOW }).split("\n")[0]).toBe(
+      "Contact: mailto:contact@haruhime.moe",
+    );
+  });
+});

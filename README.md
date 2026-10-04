@@ -169,7 +169,7 @@ export const GET = () => textResponse(llmsTxt({ title: "pools.haruhime.moe", sum
 | `refuseWithoutBearer(request, { secret, label, notConfigured, failures?, noStore? })` | Machine auth: null for the right `Bearer` secret, else 503 `not_configured`, 401, or 429 when failures are counted. |
 | `sameSecret(given, secret)`, `bearerToken(headers)` | SHA-256 digests compared with `timingSafeEqual`, and the token after `Bearer `. |
 | `safeNextPath(raw, { fallback, signInPath? })`, `signInHref(next, signInPath?)` | A same-site path to go to after sign-in (never the sign-in page), and the link carrying it. |
-| `buildSecurityTxt({ contactEmail, siteUrl, policyUrl, now })` | The RFC 9116 body, expiring a year after `now`. |
+| `buildSecurityTxt({ contactEmail, siteUrl, policyUrl, now, contactUrl? })` | The RFC 9116 body, expiring a year after `now`, with optional `contactUrl` listed before the email. |
 
 ### env
 
