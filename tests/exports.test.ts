@@ -15,6 +15,8 @@ import { expect, it } from "vitest";
 import * as apiKeys from "../src/api-keys/index.js";
 import * as auth from "../src/auth/index.js";
 import * as authReact from "../src/auth-react/index.js";
+import * as docsFiles from "../src/docs/files/index.js";
+import * as docs from "../src/docs/index.js";
 import * as env from "../src/env/index.js";
 import * as mongo from "../src/mongo/index.js";
 import * as seo from "../src/seo/index.js";
@@ -277,4 +279,23 @@ it("exports the documented api-keys API", () => {
       "isApiKeyFormat",
     ]
   `);
+});
+
+it("exports the documented docs API", () => {
+  expect(Object.keys(docs).sort()).toMatchInlineSnapshot(`
+    [
+      "CONTENT_SECTIONS",
+      "SECTION_LABELS",
+      "contentParams",
+      "contentPath",
+      "defineContent",
+      "findEntry",
+      "markdownPath",
+    ]
+  `);
+});
+
+it("exports the documented docs/files API", () => {
+  // Reserved: filled in by a later change on this branch (node:fs reads only there).
+  expect(Object.keys(docsFiles).sort()).toMatchInlineSnapshot("[]");
 });
