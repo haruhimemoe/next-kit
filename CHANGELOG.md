@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+- `docs` entry point: a content registry (`defineContent`, `CONTENT_SECTIONS`, `SECTION_LABELS`) and the path helpers (`contentPath`, `markdownPath`, `findEntry`, `contentParams`) for an app's docs, guides and legal pages, plus app-made extra entries like bb's tag pages. No runtime imports. `docs/files` entry point reserved for reading the backing markdown files (node:fs); content comes in a later change.
+
 ## [0.5.0] - 2026-10-04
 
 ### Added

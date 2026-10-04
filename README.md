@@ -12,6 +12,7 @@ The Next.js server plumbing the haruhime.moe tools share. [packs.haruhime.moe](h
 - **`/seo`:** Next.js metadata that keeps each page's canonical, og:url and preview image together, robots.txt with the AI crawler stance written down, sitemap entries with honest lastmod, schema.org JSON-LD builders, and llms.txt. No runtime imports; all four haruhime.moe sites use it.
 - **`/testing`:** Vitest helpers: one in-memory MongoDB per run, an msw server that refuses unhandled requests, and a fake env.
 - **`/api-keys`:** the shared key format (an app prefix like `hpk_` plus 32 random bytes), a key store over `api_keys`, and the `/api/v1` guard with the standard limits.
+- **`/docs`:** a content registry for an app's docs, guides and legal pages: sections, entries, app-made extra entries (like bb's tag pages), and the path helpers a dynamic route needs. No runtime imports. **`/docs/files`:** reads the markdown files a registry's entries point at (node:fs); reserved for a later release.
 
 Every name, path, limit and message comes from the caller. There is no root entry point; import a subpath.
 
@@ -34,6 +35,8 @@ bun add @haruhimemoe/next-kit zod
 | `seo` | `next` ^16.3.6 types only (nothing loads at runtime) |
 | `testing` | `vitest` ^5.0.1, `msw` ^2.15.0, `mongodb-memory-server` ^11.3.0 |
 | `api-keys` | `mongodb` ^7.6.0 |
+| `docs` | nothing else |
+| `docs/files` | nothing else (`node:fs` is built in) |
 
 ## Use
 
@@ -290,6 +293,25 @@ Since 0.3.0. Every helper takes the app's `Site`: `name`, `url` (the canonical o
 | `API_SERVER_ERROR` | The 500 message when a key lookup or handler throws. |
 | `createApiKeyGuard({ store, limiter, resolveCaller, messages, limits?, now? })` | Returns `withApiKey(handler)`: a `/api/v1` route handler that runs `handler(request, caller, context)` only for a good key under `API_LIMITS`, with `RateLimit-*` headers, `Cache-Control: no-store`, a 401 with `WWW-Authenticate: Bearer` for a missing or bad key (counted per IP), and a JSON 500 for a thrown error. No CORS headers: the API is for servers and bots. |
 
+### docs
+
+No runtime imports.
+
+| Export | What it does |
+| --- | --- |
+| `CONTENT_SECTIONS`, `ContentSection` | The sections a site can have, in display order: `"docs"`, `"guides"`, `"legal"`. |
+| `SECTION_LABELS` | The nav label for each section, like "Guides". |
+| `defineContent(input)` | Validates and fills in a `Content`: `sections` lists only the non-empty ones, in `CONTENT_SECTIONS` order; `entries` and `extra` hold every section (empty arrays for the ones left out). Throws naming the section and slug (or extra href) for a bad slug (lowercase words, single hyphens), a duplicate slug or extra href, a `lastUpdated` that isn't a real `YYYY-MM-DD` date, or a blank title. |
+| `ContentEntry`, `HowToStep` | A markdown-backed page: `slug`, `title`, `navTitle?`, `description`, `lastUpdated` (`YYYY-MM-DD`), `howTo?` (numbered steps). |
+| `ExtraEntry` | An app-made page shown in a section's nav and search, like bb's tag pages: `href`, `title`, `navTitle?`, `description`, `group`, `badge?`, `lastUpdated?`, `markdownHref?`. |
+| `contentPath(section, slug)`, `markdownPath(section, slug)` | `/section/slug` and `/section/slug.md`. |
+| `findEntry(content, section, slug)` | The matching `ContentEntry`, or undefined. |
+| `contentParams(content, section)` | `{ slug }[]` for a dynamic route's `generateStaticParams`. |
+
+### docs/files
+
+Reserved. Reads the markdown files a `Content`'s entries point at (`node:fs`); filled in by a later release.
+
 ## Migration
 
 Both apps can drop their copies for the subpaths above. Where the copies differed, this package keeps pools.haruhime.moe's behavior. What changes for packs.haruhime.moe:
@@ -308,7 +330,7 @@ For pools.haruhime.moe, `createMongo` runs `onConnect` (the privilege check, ind
 
 ## Compatibility
 
-ES modules for Node 22.12+ on the server. `auth-react` also runs in browsers; its hook and component files keep `"use client"`, and it loads only `react`, `next/navigation.js` and `@haruhimemoe/ui`. `server` loads `node:crypto` for machine auth. `seo` loads nothing at runtime (Next's types only), so it runs anywhere.
+ES modules for Node 22.12+ on the server. `auth-react` also runs in browsers; its hook and component files keep `"use client"`, and it loads only `react`, `next/navigation.js` and `@haruhimemoe/ui`. `server` loads `node:crypto` for machine auth. `seo` and `docs` load nothing at runtime (Next's types only, or nothing), so they run anywhere; `docs/files` loads `node:fs` and stays server only.
 
 ## License
 

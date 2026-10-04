@@ -62,6 +62,14 @@
       "types": "./dist/api-keys/index.d.ts",
       "default": "./dist/api-keys/index.js"
     },
+    "./docs": {
+      "types": "./dist/docs/index.d.ts",
+      "default": "./dist/docs/index.js"
+    },
+    "./docs/files": {
+      "types": "./dist/docs/files/index.d.ts",
+      "default": "./dist/docs/files/index.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
