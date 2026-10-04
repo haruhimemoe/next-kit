@@ -4,12 +4,15 @@
  *       into plain Markdown for an app's generated .md pages: callouts become blockquotes,
  *       import/export lines are dropped, root-relative links and images become absolute with the
  *       site's origin, and a missing title heading is added. Pure: no node: imports, so it runs
- *       anywhere. Everything inside a fenced code block (``` or ~~~, 3+ characters, matched close)
- *       is left exactly as written.
+ *       anywhere. Everything inside a fenced code block (``` or ~~~, 3+ characters, matched close,
+ *       optionally indented) is left exactly as written; a `<Callout>` whose body holds one of
+ *       those fences still converts to a blockquote (see markdown-segments.ts).
  * @author David @dvhsh (https://dvh.sh)
  * @created Sun Oct 4, 2026
  * @modified Sun Oct 4, 2026
  */
+
+import { mergeCalloutSegments, segmentFences } from "./markdown-segments.js";
 
 /** Options for `mdxToMarkdown`. */
 export type MarkdownOptions = {
@@ -19,10 +22,6 @@ export type MarkdownOptions = {
   transforms?: readonly ((source: string) => string)[];
 };
 
-/** One run of consecutive lines, either inside a fence (left alone) or prose (converted). */
-type Segment = { readonly isFence: boolean; readonly lines: readonly string[] };
-
-const FENCE_OPEN = /^(`{3,}|~{3,})/;
 const EXPORT_OBJECT_OPEN = /^export\s+const\s+\S+\s*=\s*\{\s*$/;
 const EXPORT_OBJECT_CLOSE = /^\}\s*;?\s*$/;
 const IMPORT_OR_EXPORT = /^(?:import|export)\b/;
@@ -33,44 +32,6 @@ const ROOT_LINK_TARGET = /\]\(\/(?!\/)([^)]*)\)/g;
 
 const titleCase = (value: string): string =>
   value.length === 0 ? value : value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
-
-/** Splits text into fence and prose segments; fence segments are never touched again. */
-const segmentFences = (text: string): Segment[] => {
-  const lines = text.split("\n");
-  const segments: Segment[] = [];
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i];
-    if (line === undefined) break;
-    const open = line.match(FENCE_OPEN);
-    if (!open) {
-      const prose: string[] = [];
-      while (i < lines.length) {
-        const proseLine = lines[i];
-        if (proseLine === undefined || FENCE_OPEN.test(proseLine)) break;
-        prose.push(proseLine);
-        i++;
-      }
-      segments.push({ isFence: false, lines: prose });
-      continue;
-    }
-    const marker = open[1]?.[0] ?? "`";
-    const minLength = open[1]?.length ?? 3;
-    const close = new RegExp(`^${marker}{${minLength},}\\s*$`);
-    const fence: string[] = [line];
-    i++;
-    while (i < lines.length) {
-      const fenceLine = lines[i];
-      if (fenceLine === undefined) break;
-      fence.push(fenceLine);
-      const isClose = close.test(fenceLine);
-      i++;
-      if (isClose) break;
-    }
-    segments.push({ isFence: true, lines: fence });
-  }
-  return segments;
-};
 
 /** Rule 2: drops top-level import/export lines, and an export const object block. */
 const dropImportExport = (text: string): string => {
@@ -100,15 +61,24 @@ const dropImportExport = (text: string): string => {
   return kept.join("\n");
 };
 
+/**
+ * Rule 3: turns a `<Callout type="x" title="...">body</Callout>` match's attrs and body into a
+ * blockquote: the label on the first line, every other body line (fence lines included, for a
+ * callout whose body holds a fenced code block) prefixed with `> `.
+ */
+const calloutBodyToBlockquote = (attrs: string, body: string): string => {
+  const type = CALLOUT_TYPE.exec(attrs)?.[1] ?? "note";
+  const label = titleCase(type);
+  const lines = body.replace(/^\n+/, "").replace(/\n+$/, "").split("\n");
+  const [first = "", ...rest] = lines;
+  return [`> **${label}:** ${first}`, ...rest.map((line) => `> ${line}`)].join("\n");
+};
+
 /** Rule 3: <Callout type="x" title="...">body</Callout> becomes a blockquote. */
 const convertCallouts = (text: string): string =>
-  text.replace(CALLOUT, (_match, attrs: string, body: string) => {
-    const type = CALLOUT_TYPE.exec(attrs)?.[1] ?? "note";
-    const label = titleCase(type);
-    const lines = body.replace(/^\n+/, "").replace(/\n+$/, "").split("\n");
-    const [first = "", ...rest] = lines;
-    return [`> **${label}:** ${first}`, ...rest.map((line) => `> ${line}`)].join("\n");
-  });
+  text.replace(CALLOUT, (_match, attrs: string, body: string) =>
+    calloutBodyToBlockquote(attrs, body),
+  );
 
 /** Rule 4: removes any other capitalized JSX tag, keeping the text between tags. */
 const removeJsxTags = (text: string): string => text.replace(JSX_TAG, "");
@@ -159,7 +129,7 @@ export const mdxToMarkdown = (source: string, options: MarkdownOptions): string 
   for (const transform of transforms) text = transform(text);
   text = text.replace(/\r\n?/g, "\n");
 
-  const converted = segmentFences(text)
+  const converted = mergeCalloutSegments(segmentFences(text), calloutBodyToBlockquote)
     .map((segment) =>
       segment.isFence ? segment.lines.join("\n") : processProse(segment.lines.join("\n"), siteUrl),
     )

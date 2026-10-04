@@ -21,6 +21,25 @@ describe("mdxToMarkdown", () => {
     expect(mdxToMarkdown(src, opts)).toBe(src);
   });
 
+  it("I1: leaves a fence indented inside a list item untouched", () => {
+    const src = "# T\n\n1. Step\n\n   ```sh\n   <Callout>no</Callout>\n   ](/a)\n   ```\n";
+    expect(mdxToMarkdown(src, opts)).toBe(src);
+  });
+
+  it("I2: converts a callout whose body contains a fenced code block", () => {
+    const src = '<Callout type="warning">\nBefore.\n\n```sh\nrun this\n```\n\nAfter.\n</Callout>\n';
+    expect(mdxToMarkdown(src, opts)).toBe(
+      "# T\n\n> **Warning:** Before.\n> \n> ```sh\n> run this\n> ```\n> \n> After.\n",
+    );
+  });
+
+  it("I2: keeps prose before a fence-spanning callout in the same segment", () => {
+    const src = "# T\n\nIntro text.\n\n<Callout>\nFenced below.\n\n```sh\ncode\n```\n</Callout>\n";
+    expect(mdxToMarkdown(src, opts)).toBe(
+      "# T\n\nIntro text.\n\n\n> **Note:** Fenced below.\n> \n> ```sh\n> code\n> ```\n",
+    );
+  });
+
   it("rule 1: normalizes CRLF and CR to LF", () => {
     expect(mdxToMarkdown("# T\r\n\r\nline one\rline two\n", opts)).toBe(
       "# T\n\nline one\nline two\n",
