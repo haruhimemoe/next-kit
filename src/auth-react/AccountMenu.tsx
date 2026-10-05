@@ -9,12 +9,12 @@
  *       (src/components/layout/AccountMenu.tsx), which differed only in the links.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Sep 28, 2026
+ * @modified Mon Oct 5, 2026
  */
 
 "use client";
 
-import { HeaderMenu, type HeaderMenuItem } from "@haruhimemoe/ui";
+import { HeaderMenu, type HeaderMenuItem, textClasses } from "@haruhimemoe/ui";
 import { usePathname } from "next/navigation.js";
 import type { ReactNode } from "react";
 import { DEFAULT_SIGN_IN_PATH, signInHref } from "../server/safe-next.js";
@@ -69,7 +69,11 @@ export function AccountMenu({
       // out of this entry point.
       <a
         href={signInHref(pathname || "/", signInPath)}
-        className="font-bold text-c3 text-sm transition-colors hover:text-c1"
+        className={textClasses({
+          tone: "muted",
+          bold: true,
+          className: "transition-colors hover:text-c1",
+        })}
       >
         {signInLabel}
       </a>

@@ -7,12 +7,12 @@
  *       (src/components/auth/SignInWithOsu.tsx), where only the error reading differed.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Sep 28, 2026
+ * @modified Mon Oct 5, 2026
  */
 
 "use client";
 
-import { Button } from "@haruhimemoe/ui";
+import { Button, Text } from "@haruhimemoe/ui";
 import { type ReactNode, useState } from "react";
 import { type OsuSignIn, osuSignIn } from "./sign-in.js";
 
@@ -85,9 +85,9 @@ export function SignInWithOsu({
         {pending ? pendingLabel : label}
       </Button>
       {error ? (
-        <p role="alert" className="font-bold text-rose-300 text-sm">
+        <Text role="alert" tone="error" bold>
           {error}
-        </p>
+        </Text>
       ) : null}
     </div>
   );

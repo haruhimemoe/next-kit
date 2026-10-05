@@ -1,20 +1,21 @@
 /**
  * @file src/auth-react/DeleteAccountForm.tsx
- * @desc "Delete my account". The confirmation is built into the page (ui's TypeToConfirm, no
- *       confirm() dialog): the button stays off until the osu! username is typed exactly, then
- *       one DELETE to the app's endpoint carries it. 204 means gone: signed out, the page says
- *       so and goes home. Another 2xx is gone too but stays, to show the answer's `notice` (work
- *       still waiting elsewhere). A refusal says the server's message, and no answer says the app
- *       couldn't be reached; nothing was deleted. The form never comes back once it's gone.
+ * @desc "Delete my account": a button that opens ui's ConfirmDialog (no confirm()), where what
+ *       goes is the description and the osu! username is typed before "Delete for good" sends one
+ *       DELETE with it to the app's endpoint. 204 means gone: signed out, the page says so and
+ *       goes home. Another 2xx is gone too but stays, to show the answer's `notice` (work still
+ *       waiting elsewhere). A refusal says the server's message in the dialog, no answer says the
+ *       app couldn't be reached, nothing was deleted and the dialog stays open. Once it's gone
+ *       the button never comes back and focus lands on the line that says so.
  *       Moved from pools and bb (src/components/account/DeleteAccountForm.tsx).
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Sep 28, 2026
+ * @modified Mon Oct 5, 2026
  */
 
 "use client";
 
-import { buttonClasses, TypeToConfirm } from "@haruhimemoe/ui";
+import { buttonClasses, ConfirmDialog } from "@haruhimemoe/ui";
 import { useRouter } from "next/navigation.js";
 import { type ReactNode, useId, useState } from "react";
 
@@ -52,7 +53,7 @@ const messageOf = async (response: Response): Promise<string> => {
  * @function DeleteAccountForm
  * @param props {DeleteAccountFormProps} the username, the app's name, what goes, the endpoint
  *        and what to do after
- * @returns {ReactNode} the typed-name confirmation, or what happened
+ * @returns {ReactNode} the "Delete my account" trigger and its confirm dialog, or what happened
  */
 export function DeleteAccountForm({
   username,
@@ -65,60 +66,58 @@ export function DeleteAccountForm({
   fetcher = fetch,
 }: DeleteAccountFormProps): ReactNode {
   const router = useRouter();
-  const id = useId();
-  const [error, setError] = useState<string | null>(null);
-  // Once it's gone: what more to say. The form doesn't come back, so no second delete.
+  const doneId = `${useId()}-done`;
+  // Once it's gone: what more to say. The button doesn't come back, so no second delete.
   const [done, setDone] = useState<string | null>(null);
+  const unreachable = `Couldn't reach ${appName}. Your account is still there.`;
+  // Throws to keep the dialog open with what went wrong.
   const remove = async () => {
-    setError(null);
+    let response: Response;
     try {
-      const response = await fetcher(endpoint, {
+      response = await fetcher(endpoint, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username }),
       });
-      if (!response.ok) {
-        setError(await messageOf(response));
-        return;
-      }
-      onDeleted();
-      if (response.status === 204) {
-        setDone("");
-        router.push(homeHref);
-        return;
-      }
-      const body = (await response.json().catch(() => ({}))) as { notice?: unknown };
-      setDone(typeof body.notice === "string" ? body.notice : "");
     } catch {
-      setError(`Couldn't reach ${appName}. Your account is still there.`);
+      throw new Error(unreachable);
     }
+    if (!response.ok) throw new Error(await messageOf(response));
+    onDeleted();
+    if (response.status === 204) {
+      setDone("");
+      router.push(homeHref);
+      return;
+    }
+    const body = (await response.json().catch(() => ({}))) as { notice?: unknown };
+    setDone(typeof body.notice === "string" ? body.notice : "");
   };
   if (done !== null) {
     return (
       <div className="flex flex-col gap-3">
-        <p role="status" className="text-c2 text-sm">
+        <p id={doneId} role="status" tabIndex={-1} className="text-c2 text-sm outline-none">
           {`Your account is deleted. ${done}`.trim()}
         </p>
         {/* A full load home: nothing of the deleted account stays in the page. */}
-        <a
-          href={homeHref}
-          className={buttonClasses({ variant: "secondary", className: "self-start" })}
-        >
+        <a href={homeHref} className={buttonClasses({ variant: "secondary" })}>
           {homeLabel}
         </a>
       </div>
     );
   }
   return (
-    <TypeToConfirm
-      id={id}
-      expected={username}
-      submitLabel="Delete my account"
+    <ConfirmDialog
+      trigger="Delete my account"
+      triggerProps={{ variant: "danger" }}
+      title="Delete your account?"
+      description={deletes}
+      tone="destructive"
+      typeToConfirm={username}
+      confirmLabel="Delete for good"
       pendingLabel="Deleting…"
-      error={error}
+      failedMessage={(error) => (error instanceof Error ? error.message : unreachable)}
+      returnFocus={() => document.getElementById(doneId)}
       onConfirm={remove}
-    >
-      <p className="text-c2 text-sm">{deletes}</p>
-    </TypeToConfirm>
+    />
   );
 }

@@ -7,11 +7,12 @@
  *       and pools (src/components/auth/RestoreSignedIn.tsx, body-identical).
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Sep 28, 2026
+ * @modified Mon Oct 5, 2026
  */
 
 "use client";
 
+import { Text } from "@haruhimemoe/ui";
 import { useRouter } from "next/navigation.js";
 import { type ReactNode, useEffect } from "react";
 
@@ -31,7 +32,7 @@ export type RestoreSignedInProps = {
 
 const readDocumentCookie = () => document.cookie;
 
-const SIGNING_IN = <p className="text-c3 text-sm">Signing you in…</p>;
+const SIGNING_IN = <Text tone="muted">Signing you in…</Text>;
 
 /**
  * @function RestoreSignedIn

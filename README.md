@@ -32,7 +32,7 @@ bun add @haruhimemoe/next-kit zod
 | `env` | nothing else |
 | `mongo` | `mongodb` ^7.6.0, `mongoose` ^9.10.2 |
 | `auth` | `better-auth` ^1.7.5, `mongodb`, `@haruhimemoe/osu` 0.2 or 0.3 |
-| `auth-react` | `react` ^19.3.0, `next` ^16.3.6, `@haruhimemoe/ui` ^0.5.0 \|\| ^0.6.0 \|\| ^0.7.0 \|\| ^0.8.0 \|\| ^0.9.0 \|\| ^0.10.0 \|\| ^0.11.0 \|\| ^0.12.0 \|\| ^0.13.0 (with its theme set up) |
+| `auth-react` | `react` ^19.3.0, `next` ^16.3.6, `@haruhimemoe/ui` ^0.14.0 \|\| ^0.15.0 \|\| ^0.16.0 \|\| ^0.17.0 (with its theme set up) |
 | `seo` | `next` ^16.3.6 types only (nothing loads at runtime) |
 | `testing` | `vitest` ^5.0.1, `msw` ^2.15.0, `mongodb-memory-server` ^11.3.0 |
 | `api-keys` | `mongodb` ^7.6.0 |
@@ -304,7 +304,7 @@ The command prints one `pass` or `FAIL` line per standard, names each missing fi
 | `SignInWithOsu({ next, signIn, signInPath?, label?, pendingLabel?, failedMessage? })` | Since 0.2.0. The large "Sign in with osu!" button. Calls `signIn(osuSignIn(next))`; an error (better-auth's `{ message }` or `{ error: { message } }`, or a throw) shows in a `role="alert"` line and the button comes back. `signInErrorMessage(error, fallback?)` reads it. |
 | `SignOutButton({ signOut, onSignedOut, redirectTo?, variant?, className?, label?, pendingLabel? })` | Since 0.2.0. Signs out, runs `onSignedOut` only once the session is gone, then `router.replace(redirectTo ?? "/")` and `router.refresh()`. |
 | `AccountMenu({ account, items, signOut, onSignedOut, avatarSrc?, signInPath?, signInLabel?, signOutLabel?, signOutRedirect? })` | Since 0.2.0. A sized blank while loading, a "Sign in" link back to this page when signed out, else ui's `HeaderMenu` with the avatar and name, `items` and Sign out. The avatar is a plain `<img>` (your CSP's img-src must allow a.ppy.sh and osu.ppy.sh); `avatarSrc` defaults to `osuAvatarSrc`. |
-| `DeleteAccountForm({ username, appName, deletes, onDeleted, endpoint?, homeHref?, homeLabel?, fetcher? })` | Since 0.2.0. ui's `TypeToConfirm` on the username, then `DELETE endpoint` (default `/api/account`) with `{ username }`. 204: `onDeleted`, "Your account is deleted." and home. Another 2xx: `onDeleted` and the answer's `notice` after that line, staying. A refusal shows `error.message` (else "Deleting failed (status)."); no answer, "Couldn't reach <appName>. Your account is still there." `deletes` is inline content in a `<p>`. |
+| `DeleteAccountForm({ username, appName, deletes, onDeleted, endpoint?, homeHref?, homeLabel?, fetcher? })` | Since 0.2.0. A "Delete my account" button (0.8.0; an in-page `TypeToConfirm` before) that opens ui's `ConfirmDialog`: `deletes` is its description, the username must be typed, then "Delete for good" sends `DELETE endpoint` (default `/api/account`) with `{ username }`. 204: `onDeleted`, "Your account is deleted." (focused) and home. Another 2xx: `onDeleted` and the answer's `notice` after that line, staying. A refusal shows `error.message` (else "Deleting failed (status).") in the dialog; no answer, "Couldn't reach <appName>. Your account is still there." The dialog stays open on both. Needs ui 0.14.0. |
 | `osuAvatarSrc(url)`, `OSU_AVATAR_HOSTS` | Since 0.2.0. An osu! avatar URL on https when it's on a.ppy.sh or osu.ppy.sh (a bare path is osu.ppy.sh's), else null. |
 
 ### seo

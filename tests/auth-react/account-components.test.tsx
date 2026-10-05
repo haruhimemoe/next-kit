@@ -1,14 +1,17 @@
 /**
  * @file tests/auth-react/account-components.test.tsx
  * @desc AccountMenu, DeleteAccountForm and createAuthComponents: the menu's three states, the
- *       typed-name delete (204, a notice, a refusal, no answer), and the bound components calling
- *       the app's client and account kit. Ported from pools (AccountMenu, DeleteAccountForm tests).
+ *       delete in a dialog: what goes, the typed username, 204, a notice, a refusal and no answer
+ *       said in the dialog, focus on the result, and the bound components calling the app's
+ *       client and account kit. Ported from pools (AccountMenu, DeleteAccountForm tests).
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Sep 28, 2026
+ * @modified Mon Oct 5, 2026
  */
 
 // @vitest-environment jsdom
+
+import "../helpers/dialog.js";
 
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -74,7 +77,7 @@ describe("AccountMenu", () => {
   });
 });
 
-const confirmDelete = async (onDeleted: () => void, fetcher: typeof fetch) => {
+const renderForm = (onDeleted: () => void, fetcher: typeof fetch) =>
   render(
     <DeleteAccountForm
       username="peppy"
@@ -85,12 +88,40 @@ const confirmDelete = async (onDeleted: () => void, fetcher: typeof fetch) => {
       endpoint="/api/me"
     />,
   );
+
+// fireEvent.click doesn't focus its target the way a real click does (that's what
+// @testing-library/user-event is for); ConfirmDialog's returnFocus fallback only engages once the
+// opener it captured on open is gone, so the trigger must actually hold focus when it opens.
+const clickTrigger = (name: string) => {
+  const button = screen.getByRole("button", { name });
+  fireEvent.click(button);
+  button.focus();
+};
+
+const confirmDelete = async (onDeleted: () => void, fetcher: typeof fetch) => {
+  renderForm(onDeleted, fetcher);
+  await act(async () => clickTrigger("Delete my account"));
   fireEvent.change(screen.getByLabelText("Type peppy to confirm"), { target: { value: "peppy" } });
-  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Delete my account" })));
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Delete for good" })));
 };
 
 describe("DeleteAccountForm", () => {
-  it("sends the username, then signs out and goes home on a 204, the form gone", async () => {
+  it("opens a dialog that says what goes and waits for the username", async () => {
+    const fetcher = vi.fn(async () => new Response(null, { status: 204 }));
+    renderForm(vi.fn(), fetcher);
+    await act(async () =>
+      fireEvent.click(screen.getByRole("button", { name: "Delete my account" })),
+    );
+    const dialog = screen.getByRole("alertdialog", { name: "Delete your account?" });
+    const described = document.getElementById(dialog.getAttribute("aria-describedby") ?? "");
+    expect(described?.textContent).toBe("This deletes your account and every pool you own.");
+    const confirm = screen.getByRole("button", { name: "Delete for good" });
+    expect(confirm.getAttribute("aria-disabled")).toBe("true");
+    await act(async () => fireEvent.click(confirm));
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("sends the username, then signs out and goes home on a 204, focus on what happened", async () => {
     const onDeleted = vi.fn();
     const fetcher = vi.fn(async () => new Response(null, { status: 204 }));
     await confirmDelete(onDeleted, fetcher);
@@ -100,8 +131,12 @@ describe("DeleteAccountForm", () => {
     expect(JSON.parse(String(init?.body))).toEqual({ username: "peppy" });
     expect(onDeleted).toHaveBeenCalledOnce();
     expect(push).toHaveBeenCalledWith("/");
-    expect(screen.getByRole("status").textContent).toBe("Your account is deleted.");
+    const status = screen.getByRole("status");
+    expect(status.textContent).toBe("Your account is deleted.");
+    expect(document.activeElement).toBe(status);
+    expect(screen.queryByRole("alertdialog")).toBeNull();
     expect(screen.queryByRole("button", { name: "Delete my account" })).toBeNull();
+    expect(document.documentElement.style.overflow).toBe("");
   });
 
   it("stays to show the answer's notice, with a link home", async () => {
@@ -114,7 +149,7 @@ describe("DeleteAccountForm", () => {
     expect(push).not.toHaveBeenCalled();
   });
 
-  it("says a refusal, a bare refusal, and no answer, and deletes nothing", async () => {
+  it("says a refusal, a bare refusal and no answer in the dialog, and deletes nothing", async () => {
     const onDeleted = vi.fn();
     const answers = [
       Response.json({ error: { message: "Try again later." } }, { status: 503 }),
@@ -127,13 +162,14 @@ describe("DeleteAccountForm", () => {
     });
     await confirmDelete(onDeleted, fetcher);
     expect(screen.getByRole("alert").textContent).toBe("Try again later.");
-    const button = screen.getByRole("button", { name: "Delete my account" });
+    const button = screen.getByRole("button", { name: "Delete for good" });
     await act(async () => fireEvent.click(button));
     expect(screen.getByRole("alert").textContent).toBe("Deleting failed (500).");
     await act(async () => fireEvent.click(button));
     expect(screen.getByRole("alert").textContent).toBe(
       "Couldn't reach pools. Your account is still there.",
     );
+    expect(screen.getByRole("alertdialog")).toBeTruthy();
     expect(onDeleted).not.toHaveBeenCalled();
   });
 });
@@ -167,12 +203,13 @@ describe("createAuthComponents", () => {
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "Out" })));
     expect(client.signOut).toHaveBeenCalledOnce();
     expect(kit.markSignedOut).toHaveBeenCalledOnce();
-    fireEvent.change(screen.getByLabelText("Type peppy to confirm"), {
-      target: { value: "peppy" },
-    });
     await act(async () =>
       fireEvent.click(screen.getByRole("button", { name: "Delete my account" })),
     );
+    fireEvent.change(screen.getByLabelText("Type peppy to confirm"), {
+      target: { value: "peppy" },
+    });
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Delete for good" })));
     expect(kit.markSignedOut).toHaveBeenCalledTimes(2);
   });
 });

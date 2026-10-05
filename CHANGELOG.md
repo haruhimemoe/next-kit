@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-05
+
+### Changed
+- **Breaking.** The `@haruhimemoe/ui` peer range is now `^0.14.0 || ^0.15.0 || ^0.16.0 || ^0.17.0` (0.15 to 0.17 not yet published): `DeleteAccountForm` needs ui's `ConfirmDialog`.
+- `DeleteAccountForm` is a "Delete my account" button that opens a dialog: what goes is its description, the username is typed there, and a refusal or no answer is said in the dialog, which stays open. Once the account is deleted, focus moves to the "Your account is deleted." line.
+- The account components use ui's text tones (`Text`, `textClasses`) and Button's own width. No change in how they look.
+
 ## [0.7.0] - 2026-10-05
 
 ### Added
@@ -89,7 +96,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `@haruhimemoe/next-kit/auth-react`: `createSignedInMarker`, `createAccountStore`, `useAccount`, `createAccount`, `RestoreSignedIn` and `osuSignIn`.
 - `@haruhimemoe/next-kit/testing`: `startMemoryMongo`, `setupTestDb`, `setupMsw` and the fake osu! app env.
 
-[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.6.2...HEAD
+[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/haruhimemoe/next-kit/compare/v0.7.0...v0.8.0
 [0.6.2]: https://github.com/haruhimemoe/next-kit/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/haruhimemoe/next-kit/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/haruhimemoe/next-kit/compare/v0.5.0...v0.6.0
