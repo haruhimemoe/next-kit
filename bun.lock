@@ -8,7 +8,7 @@
         "@biomejs/biome": "2.5.14",
         "@haruhimemoe/osu": "0.2.0",
         "@haruhimemoe/ui": "0.5.0",
-        "@haruhimemoe/vcs": "file:../vcs",
+        "@haruhimemoe/vcs": "0.1.0",
         "@testing-library/dom": "10.4.2",
         "@testing-library/react": "16.3.3",
         "@types/node": "26.6.2",
@@ -134,7 +134,7 @@
 
     "@haruhimemoe/ui": ["@haruhimemoe/ui@0.5.0", "", { "dependencies": { "tailwind-merge": "3.7.0" }, "peerDependencies": { "next": ">=16.0.0 <17", "react": ">=19.0.0", "react-dom": ">=19.0.0", "tailwindcss": ">=4.1.0 <5" } }, "sha512-1j580cNuAyaoUZ8iZ+2zJKUDLbG1BxZvB4UzrWRlxzoTOVfrzgLpyan7qDW2zR7/U2muShSq0yOgOefw4mjnXQ=="],
 
-    "@haruhimemoe/vcs": ["@haruhimemoe/vcs@file:../vcs", { "devDependencies": { "@biomejs/biome": "2.5.14", "@types/node": "26.6.2", "@vitest/coverage-v8": "5.0.1", "typescript": "7.0.2", "vitest": "5.0.1" } }],
+    "@haruhimemoe/vcs": ["@haruhimemoe/vcs@0.1.0", "", {}, "sha512-Zsas46sJyFv7EoWxYg5PHgYzN5sGm/LW9YmwTs5EXt7c3rwbelZLhOPpsiXijlUHYfS6Z71L69Egs/XBZD2YKA=="],
 
     "@img/colour": ["@img/colour@1.1.0", "", {}, "sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ=="],
 
