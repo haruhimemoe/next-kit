@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
  * @file src/check/cli.ts
- * @desc `next-kit check [dir]`: lists src/app under dir (default: the working directory), runs
- *       checkStandards and prints one line per standard. Exits 1 when one fails or src/app is
- *       missing.
+ * @desc `next-kit check [dir]`: lists src/app and content (when it exists) under dir (default:
+ *       the working directory), runs checkStandards and prints one line per standard. Exits 1
+ *       when one fails or src/app is missing.
  * @author David @dvhsh (https://dvh.sh)
  * @created Sat Oct 3, 2026
- * @modified Sat Oct 3, 2026
+ * @modified Sun Oct 4, 2026
  */
 
 import { existsSync, readdirSync, realpathSync } from "node:fs";
@@ -20,9 +20,12 @@ const walk = (dir: string): string[] =>
     entry.isDirectory() ? walk(join(dir, entry.name)) : [join(dir, entry.name)],
   );
 
+const relativeFiles = (dir: string): string[] =>
+  walk(dir).map((file) => relative(dir, file).split(sep).join("/"));
+
 /**
  * @function runCheck
- * @param root {string} the app's root (holds src/app)
+ * @param root {string} the app's root (holds src/app and, optionally, content/)
  * @param log {(line: string) => void} where lines go (default console.log)
  * @returns {number} 0 when every standard passes, otherwise 1
  */
@@ -32,11 +35,12 @@ export const runCheck = (root: string, log: (line: string) => void = console.log
     log(`next-kit check: no src/app in ${root}`);
     return 1;
   }
-  const files = walk(app).map((file) => relative(app, file).split(sep).join("/"));
-  const results = checkStandards(files);
+  const contentDir = join(root, "content");
+  const contentFiles = existsSync(contentDir) ? relativeFiles(contentDir) : [];
+  const results = checkStandards(relativeFiles(app), contentFiles);
   for (const result of results) {
     log(`${result.ok ? "pass" : "FAIL"}  ${result.label}`);
-    for (const name of result.missing) log(`      missing src/app/${name}`);
+    for (const missing of result.missing) log(`      missing ${missing}`);
   }
   return results.every((result) => result.ok) ? 0 : 1;
 };

@@ -1,14 +1,16 @@
 /**
  * @file tests/api-keys/store.test.ts
  * @desc createApiKeyStore against the in-memory MongoDB: packs' cases
- *       (tests/integration/services/api-keys.test.ts) with the user lookup left to the app.
+ *       (tests/integration/services/api-keys.test.ts) with the user lookup left to the app, plus
+ *       a deterministic duplicate-key retry on issue() and the default `now` parameter.
  * @author David @dvhsh (https://dvh.sh)
  * @created Sat Oct 3, 2026
- * @modified Sat Oct 3, 2026
+ * @modified Sun Oct 4, 2026
  */
 
+import type { Db } from "mongodb";
 import { ObjectId } from "mongodb";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { hashApiKey } from "../../src/api-keys/format.js";
 import { API_KEYS_COLLECTION, createApiKeyStore } from "../../src/api-keys/store.js";
 import { testDatabase } from "../helpers/db.js";
@@ -52,6 +54,78 @@ describe("issue", () => {
     await store.ensureIndexes();
     await Promise.all([store.issue(userId), store.issue(userId), store.issue(userId)]);
     expect(await docs().countDocuments({ userId: new ObjectId(userId) })).toBe(1);
+  });
+
+  it("retries once after a duplicate-key error, then succeeds", async () => {
+    const real = await connectedDb();
+    let attempts = 0;
+    const flaky = {
+      collection: (name: string) => {
+        const target = real.collection(name);
+        if (name !== API_KEYS_COLLECTION) return target;
+        return {
+          ...target,
+          findOneAndUpdate: async (...args: Parameters<typeof target.findOneAndUpdate>) => {
+            attempts += 1;
+            if (attempts === 1)
+              throw Object.assign(new Error("E11000 duplicate key"), { code: 11000 });
+            return target.findOneAndUpdate(...args);
+          },
+        };
+      },
+    } as unknown as Db;
+    const flakyStore = createApiKeyStore({
+      prefix: "hpl_",
+      db: async () => flaky,
+      now: () => clock,
+    });
+    const flakyUserId = new ObjectId().toString();
+    const { key, apiKey } = await flakyStore.issue(flakyUserId);
+    expect(attempts).toBe(2);
+    expect(apiKey.prefix).toBe(key.slice(0, 12));
+    expect((await docs().findOne({ userId: new ObjectId(flakyUserId) }))?.hash).toBe(
+      hashApiKey(key),
+    );
+  });
+
+  it("rethrows an error that isn't a duplicate key", async () => {
+    const flakyStore = createApiKeyStore({
+      prefix: "hpl_",
+      db: async () =>
+        ({
+          collection: () => ({
+            findOneAndUpdate: async () => {
+              throw new Error("connection reset");
+            },
+          }),
+        }) as unknown as Db,
+    });
+    await expect(flakyStore.issue(new ObjectId().toString())).rejects.toThrow("connection reset");
+  });
+});
+
+describe("default now", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("stamps createdAt from Date.now() when now is omitted", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-01T00:00:00.000Z"));
+    const defaultStore = createApiKeyStore({ prefix: "hpl_", db: connectedDb });
+    const { apiKey } = await defaultStore.issue(new ObjectId().toString());
+    expect(Math.abs(Date.parse(apiKey.createdAt) - Date.now())).toBeLessThan(1000);
+  });
+
+  it("stamps lastUsedAt from Date.now() when now is omitted", async () => {
+    const defaultStore = createApiKeyStore({ prefix: "hpl_", db: connectedDb });
+    const defaultUserId = new ObjectId().toString();
+    const { key } = await defaultStore.issue(defaultUserId);
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-01T00:00:00.000Z"));
+    await (await defaultStore.authenticate(key))?.stamp();
+    const info = await defaultStore.info(defaultUserId);
+    expect(Math.abs(Date.parse(info?.lastUsedAt ?? "") - Date.now())).toBeLessThan(1000);
   });
 });
 

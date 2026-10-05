@@ -7,7 +7,7 @@
  *       scripts/check-consumer.mjs <zod version> (after `bun run build`). Needs the npm registry.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Sep 28, 2026
+ * @modified Sun Oct 4, 2026
  */
 
 import { execFileSync } from "node:child_process";
@@ -49,6 +49,8 @@ import { createRevisionStore, type CommitResult, type RevisionStore } from "@har
 import { defineCodec } from "@haruhimemoe/vcs";
 import { createOsuAuth, getOsuUser, type OsuAuth, type OsuSessionUser } from "@haruhimemoe/next-kit/auth";
 import { createAccountStore, createAuthComponents, createSignedInMarker, osuAvatarSrc, osuSignIn, safeNextPath, type Account, type BoundAccountMenuProps } from "@haruhimemoe/next-kit/auth-react";
+import { contentPath, defineContent, findEntry, type Content } from "@haruhimemoe/next-kit/docs";
+import "@haruhimemoe/next-kit/docs/files";
 import { createServerEnv, EnvError, OSU_APP_PLACEHOLDERS, OSU_APP_SECRET_KEYS, osuAppEnvSchema } from "@haruhimemoe/next-kit/env";
 import { createMongo, defineCollections, ensureIndexes, type IndexSpec } from "@haruhimemoe/next-kit/mongo";
 import { createRateLimiter, parseJsonBody, parseIdList, refuseCrossSite, type RateLimitRule } from "@haruhimemoe/next-kit/server";
@@ -99,6 +101,9 @@ if (meta.alternates?.canonical !== "https://pools.haruhime.moe/search" || entrie
 if (serializeLd(ld.graph(ld.webSite(site, { searchUrlTemplate: "/search?q={search_term_string}" }))).includes("<")) throw new Error("ld");
 void rules;
 type _ = typeof setupTestDb;
+const content: Content = defineContent({ guides: [{ slug: "make-a-pack", title: "Make a pack", description: "d", lastUpdated: "2026-10-04" }] });
+if (contentPath("guides", "make-a-pack") !== "/guides/make-a-pack") throw new Error("docs path");
+if (findEntry(content, "guides", "make-a-pack")?.slug !== "make-a-pack") throw new Error("docs find");
 console.log("consumer: ok");
 `;
 

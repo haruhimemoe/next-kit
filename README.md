@@ -12,6 +12,7 @@ The Next.js server plumbing the haruhime.moe tools share. [packs.haruhime.moe](h
 - **`/seo`:** Next.js metadata that keeps each page's canonical, og:url and preview image together, robots.txt with the AI crawler stance written down, sitemap entries with honest lastmod, schema.org JSON-LD builders, and llms.txt. No runtime imports; all four haruhime.moe sites use it.
 - **`/testing`:** Vitest helpers: one in-memory MongoDB per run, an msw server that refuses unhandled requests, and a fake env.
 - **`/api-keys`:** the shared key format (an app prefix like `hpk_` plus 32 random bytes), a key store over `api_keys`, and the `/api/v1` guard with the standard limits.
+- **`/docs`:** a content registry for an app's docs, guides and legal pages: sections, entries, app-made extra entries (like bb's tag pages), the path helpers a dynamic route needs, and `mdxToMarkdown` to turn bb-flavored MDX into plain Markdown. No runtime imports. **`/docs/files`:** reads the markdown files a registry's entries point at and reports drift between the registry and disk (node:fs).
 - **`/vcs`:** document history in MongoDB on top of `@haruhimemoe/vcs`: one line of revisions per document, saves merged onto whatever landed since their base, revert, diffs, and autosave pruning.
 
 Every name, path, limit and message comes from the caller. There is no root entry point; import a subpath.
@@ -31,10 +32,12 @@ bun add @haruhimemoe/next-kit zod
 | `env` | nothing else |
 | `mongo` | `mongodb` ^7.6.0, `mongoose` ^9.10.2 |
 | `auth` | `better-auth` ^1.7.5, `mongodb`, `@haruhimemoe/osu` 0.2 or 0.3 |
-| `auth-react` | `react` ^19.3.0, `next` ^16.3.6, `@haruhimemoe/ui` ^0.5.0 \|\| ^0.6.0 \|\| ^0.7.0 \|\| ^0.8.0 \|\| ^0.9.0 (with its theme set up) |
+| `auth-react` | `react` ^19.3.0, `next` ^16.3.6, `@haruhimemoe/ui` ^0.5.0 \|\| ^0.6.0 \|\| ^0.7.0 \|\| ^0.8.0 \|\| ^0.9.0 \|\| ^0.10.0 \|\| ^0.11.0 \|\| ^0.12.0 \|\| ^0.13.0 (with its theme set up) |
 | `seo` | `next` ^16.3.6 types only (nothing loads at runtime) |
 | `testing` | `vitest` ^5.0.1, `msw` ^2.15.0, `mongodb-memory-server` ^11.3.0 |
 | `api-keys` | `mongodb` ^7.6.0 |
+| `docs` | nothing else |
+| `docs/files` | nothing else (`node:fs` is built in) |
 | `vcs` | `mongodb` ^7.6.0, `@haruhimemoe/vcs` ^0.1.0 |
 
 ## Use
@@ -151,15 +154,84 @@ export default async () => sitemapEntries(SEO_SITE, [["/", "/search"], pools.map
 export const GET = () => textResponse(llmsTxt({ title: "pools.haruhime.moe", summary: SEO_SITE.description, sections }));
 ```
 
+### Docs (./docs)
+
+One registry per app, built from its docs, guides and legal entries; the crawl helpers and a dynamic route are built on top of it.
+
+```ts
+// src/constants/content.ts
+import { defineContent } from "@haruhimemoe/next-kit/docs";
+
+export const CONTENT = defineContent({
+  docs: [{ slug: "api", title: "API", description: "The /api/v1 reference.", lastUpdated: "2026-10-04" }],
+  guides: [{ slug: "make-a-pack", title: "Make a pack", description: "Build your first mappool.", lastUpdated: "2026-10-04" }],
+  legal: [
+    { slug: "terms", title: "Terms of service", description: "The rules for using pools.", lastUpdated: "2026-10-04" },
+    { slug: "privacy", title: "Privacy policy", description: "What pools stores and why.", lastUpdated: "2026-10-04" },
+  ],
+});
+
+// src/app/docs/[slug]/page.tsx (and guides/, legal/, the same shape)
+import { findEntry } from "@haruhimemoe/next-kit/docs";
+import { readContentMarkdown } from "@haruhimemoe/next-kit/docs/files";
+import { CONTENT } from "../../../constants/content";
+
+export default async function DocPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const entry = findEntry(CONTENT, "docs", slug);
+  if (!entry) return notFound();
+  const markdown = await readContentMarkdown(CONTENT, "docs", slug, { siteUrl: SEO_SITE.url });
+  return <Markdown>{markdown}</Markdown>;
+}
+
+// src/app/llms.txt/route.ts
+import { contentLlmsTxt } from "@haruhimemoe/next-kit/docs";
+import { textResponse } from "@haruhimemoe/next-kit/seo";
+
+export const GET = () =>
+  textResponse(contentLlmsTxt({ site: SEO_SITE, title: "pools.haruhime.moe", summary: SEO_SITE.description, content: CONTENT }));
+
+// src/app/llms-full.txt/route.ts
+import { contentLlmsFull } from "@haruhimemoe/next-kit/docs";
+import { readContentMarkdown } from "@haruhimemoe/next-kit/docs/files";
+
+export const GET = async () =>
+  textResponse(
+    await contentLlmsFull({
+      site: SEO_SITE, title: "pools.haruhime.moe", content: CONTENT,
+      read: (section, slug) => readContentMarkdown(CONTENT, section, slug, { siteUrl: SEO_SITE.url }),
+    }),
+  );
+
+// src/app/sitemap.ts
+import { contentSitemap } from "@haruhimemoe/next-kit/docs";
+
+export default async () => sitemapEntries(SEO_SITE, [["/", "/search"], contentSitemap(CONTENT)]);
+
+// next.config.ts
+import { contentRewrites } from "@haruhimemoe/next-kit/docs";
+
+export default { async rewrites() { return contentRewrites(); } };
+```
+
 ## Standards check
 
-`next-kit check [dir]` walks `src/app` (default: the current directory) and confirms every standard route exists, so CI catches a missing one before a page does:
+`next-kit check [dir]` walks `src/app` and, when it exists, `content/` (both under `dir`, default: the current directory) and confirms every standard file exists, so CI catches a missing one before a page does. It checks files only; the content registry itself is never parsed.
 
 ```sh
 bunx next-kit check
 ```
 
-It always checks the crawl files: `robots.ts`, `sitemap.ts`, `llms.txt/route.ts`, `llms-full.txt/route.ts`, and `.well-known/security.txt/route.ts` (each also accepted as a route handler, like `robots.txt/route.ts`). Once an app has `src/app/api/v1/`, it also checks the public API: `api/v1/me/route.ts`, `api/v1/openapi.json/route.ts`, `api/me/api-key/route.ts`, and a `docs/api` page (a dynamic `docs/[slug]/page.tsx` counts too). Route groups like `(public)/` are ignored, since they don't change the URL.
+Every app is checked against:
+
+- **crawl** (always): `robots.ts`, `sitemap.ts`, `llms.txt/route.ts`, `llms-full.txt/route.ts`, and `.well-known/security.txt/route.ts` (each also accepted as a route handler, like `robots.txt/route.ts`).
+- **brand** (always): `brand/page.tsx`.
+- **legal** (always): `legal/page.tsx`, `legal/[x]/page.tsx`, `legal/[x]/md/route.ts` (any dynamic segment name), and `content/legal/terms.mdx` plus `content/legal/privacy.mdx`.
+- **docs**, once `src/app/api/v1` exists or any `content/docs` file does: `docs/page.tsx`, `docs/[x]/page.tsx`, `docs/[x]/md/route.ts`.
+- **guides**, only once a `content/guides` file exists: the same three files under `guides/`. An app with no guides is never asked for them.
+- **api**, once `src/app/api/v1` exists: `api/v1/me/route.ts`, `api/v1/openapi.json/route.ts`, `api/me/api-key/route.ts`, and `content/docs/api.mdx`.
+
+Route groups like `(public)/` are ignored, since they don't change the URL. A missing route file prints as `missing src/app/<path>`; a missing content file prints as `missing content/<path>`.
 
 The command prints one `pass` or `FAIL` line per standard, names each missing file, and exits 1 on a failure (or when `src/app` is missing). Add it to CI:
 
@@ -292,6 +364,35 @@ Since 0.3.0. Every helper takes the app's `Site`: `name`, `url` (the canonical o
 | `API_SERVER_ERROR` | The 500 message when a key lookup or handler throws. |
 | `createApiKeyGuard({ store, limiter, resolveCaller, messages, limits?, now? })` | Returns `withApiKey(handler)`: a `/api/v1` route handler that runs `handler(request, caller, context)` only for a good key under `API_LIMITS`, with `RateLimit-*` headers, `Cache-Control: no-store`, a 401 with `WWW-Authenticate: Bearer` for a missing or bad key (counted per IP), and a JSON 500 for a thrown error. No CORS headers: the API is for servers and bots. |
 
+### docs
+
+No runtime imports.
+
+| Export | What it does |
+| --- | --- |
+| `CONTENT_SECTIONS`, `ContentSection` | The sections a site can have, in display order: `"docs"`, `"guides"`, `"legal"`. |
+| `SECTION_LABELS` | The nav label for each section, like "Guides". |
+| `defineContent(input)` | Validates and fills in a `Content`: `sections` lists only the non-empty ones, in `CONTENT_SECTIONS` order; `entries` and `extra` hold every section (empty arrays for the ones left out). Throws naming the section and slug (or extra href) for a bad slug (lowercase words, single hyphens), a duplicate slug or extra href, a `lastUpdated` that isn't a real `YYYY-MM-DD` date, or a blank title. |
+| `ContentEntry`, `HowToStep` | A markdown-backed page: `slug`, `title`, `navTitle?`, `description`, `lastUpdated` (`YYYY-MM-DD`), `howTo?` (numbered steps). |
+| `ExtraEntry` | An app-made page shown in a section's nav and search, like bb's tag pages: `href`, `title`, `navTitle?`, `description`, `group`, `badge?`, `lastUpdated?`, `markdownHref?`. |
+| `contentPath(section, slug)`, `markdownPath(section, slug)` | `/section/slug` and `/section/slug.md`. |
+| `findEntry(content, section, slug)` | The matching `ContentEntry`, or undefined. |
+| `contentParams(content, section)` | `{ slug }[]` for a dynamic route's `generateStaticParams`. |
+| `mdxToMarkdown(source, { title, siteUrl, transforms? })` | Converts bb-flavored MDX to plain Markdown, outside fenced code blocks only: CRLF/CR become LF (`transforms` run first, on the whole source); top-level `import`/`export` lines and an `export const x = {` block are dropped; `<Callout type="..." title="...">body</Callout>` becomes a blockquote (`> **Type:** body`, type missing means "Note"); other capitalized JSX tags are removed (text between them stays, lowercase HTML tags stay); a link or image target starting with a single `/` becomes absolute with `siteUrl`; `title` is prepended as a `# ` heading when the first non-blank line isn't one; runs of 3+ blank lines collapse to 2, and the result ends with exactly one newline. |
+| `contentLlmsTxt({ site, title, summary, notes?, content, api? })` | The llms.txt body: sections in order Docs, Guides, API, Legal. Each entry links to its absolute `.md` URL with its description as the note; an extra links to `markdownHref` when set, else `href`. An empty section (no entries, no extras, no `api` links) is left out. |
+| `contentLlmsFull({ site, title, summary?, content, read, before?, after? })` | The llms-full.txt body: `before`, then every registry entry in section order (title, its absolute page URL, and `read(section, slug)`'s Markdown with its own leading `# ` heading stripped, since `llmsFull` writes the part title as the H1), then `after`. `read` is usually `readContentMarkdown` from `docs/files`. |
+| `contentSitemap(content)` | A `SitemapRecord[]` for `seo`'s `sitemapEntries`: one non-empty section's index path (like `/docs`, `lastModified` set to the newest `lastUpdated` among its entries and extras, omitted when none have one), then each entry with its own `lastUpdated`, then each extra with its own `lastUpdated` when set. |
+| `contentRewrites()` | The one Next.js rewrite rule that mirrors a content page's `.md` URL (`/docs/x.md`, `/guides/x.md`, `/legal/x.md`) to its route handler (`/docs/x/md`, ...). Pure, takes no registry. |
+
+### docs/files
+
+`node:fs`. Markdown source for an entry lives at `<root>/content/<section>/<slug>.mdx`.
+
+| Export | What it does |
+| --- | --- |
+| `readContentMarkdown(content, section, slug, { root?, siteUrl, transforms? })` | Reads a registered entry's markdown file and converts it with `mdxToMarkdown` (using the entry's `title`). `root` defaults to `process.cwd()`. Returns null for an unregistered slug; rejects (ENOENT) when the slug is registered but its file is missing. |
+| `contentFileDrift(content, { root? })` | `{ missingFiles, unregistered }`: `missingFiles` lists registered entries with no file on disk (like `"guides/x.mdx"`); `unregistered` lists `.mdx` files on disk with no registry entry. `root` defaults to `process.cwd()`. |
+
 ### vcs
 
 | Export | What it does |
@@ -345,7 +446,7 @@ For pools.haruhime.moe, `createMongo` runs `onConnect` (the privilege check, ind
 
 ## Compatibility
 
-ES modules for Node 22.12+ on the server. `auth-react` also runs in browsers; its hook and component files keep `"use client"`, and it loads only `react`, `next/navigation.js` and `@haruhimemoe/ui`. `server` loads `node:crypto` for machine auth. `seo` loads nothing at runtime (Next's types only), so it runs anywhere.
+ES modules for Node 22.12+ on the server. `auth-react` also runs in browsers; its hook and component files keep `"use client"`, and it loads only `react`, `next/navigation.js` and `@haruhimemoe/ui`. `server` loads `node:crypto` for machine auth. `seo` and `docs` load nothing at runtime (Next's types only, or nothing), so they run anywhere; `docs/files` loads `node:fs` and stays server only.
 
 ## License
 

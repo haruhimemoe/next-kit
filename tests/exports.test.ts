@@ -15,6 +15,8 @@ import { expect, it } from "vitest";
 import * as apiKeys from "../src/api-keys/index.js";
 import * as auth from "../src/auth/index.js";
 import * as authReact from "../src/auth-react/index.js";
+import * as docsFiles from "../src/docs/files/index.js";
+import * as docs from "../src/docs/index.js";
 import * as env from "../src/env/index.js";
 import * as mongo from "../src/mongo/index.js";
 import * as seo from "../src/seo/index.js";
@@ -32,6 +34,8 @@ const ENTRIES = [
   "testing",
   "seo",
   "api-keys",
+  "docs",
+  "docs/files",
   "vcs",
 ];
 
@@ -78,9 +82,14 @@ it("keeps the seo entry point free of runtime imports (Next's types only)", () =
 
 it("keeps every source file under 200 lines", () => {
   for (const dir of [...ENTRIES, "check"]) {
-    for (const file of readdirSync(new URL(`../src/${dir}`, import.meta.url))) {
-      const text = readFileSync(new URL(`../src/${dir}/${file}`, import.meta.url), "utf8");
-      expect(text.split("\n").length, `${dir}/${file}`).toBeLessThanOrEqual(200);
+    // withFileTypes: an entry point directory can hold a nested entry point's own directory
+    // (docs/files under docs), which readdirSync also lists and which is checked on its own.
+    for (const file of readdirSync(new URL(`../src/${dir}`, import.meta.url), {
+      withFileTypes: true,
+    })) {
+      if (!file.isFile()) continue;
+      const text = readFileSync(new URL(`../src/${dir}/${file.name}`, import.meta.url), "utf8");
+      expect(text.split("\n").length, `${dir}/${file.name}`).toBeLessThanOrEqual(200);
     }
   }
 });
@@ -270,6 +279,34 @@ it("exports the documented api-keys API", () => {
       "generateApiKey",
       "hashApiKey",
       "isApiKeyFormat",
+    ]
+  `);
+});
+
+it("exports the documented docs API", () => {
+  expect(Object.keys(docs).sort()).toMatchInlineSnapshot(`
+    [
+      "CONTENT_SECTIONS",
+      "SECTION_LABELS",
+      "contentLlmsFull",
+      "contentLlmsTxt",
+      "contentParams",
+      "contentPath",
+      "contentRewrites",
+      "contentSitemap",
+      "defineContent",
+      "findEntry",
+      "markdownPath",
+      "mdxToMarkdown",
+    ]
+  `);
+});
+
+it("exports the documented docs/files API", () => {
+  expect(Object.keys(docsFiles).sort()).toMatchInlineSnapshot(`
+    [
+      "contentFileDrift",
+      "readContentMarkdown",
     ]
   `);
 });

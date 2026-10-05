@@ -4,7 +4,7 @@
  *       entry point, and runs one call from each. Run by `bun run test:dist` after a build.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Sep 28, 2026
+ * @modified Sun Oct 4, 2026
  */
 
 import assert from "node:assert/strict";
@@ -12,6 +12,7 @@ import { existsSync, readFileSync } from "node:fs";
 import * as apiKeys from "../dist/api-keys/index.js";
 import * as auth from "../dist/auth/index.js";
 import * as authReact from "../dist/auth-react/index.js";
+import * as docs from "../dist/docs/index.js";
 import * as env from "../dist/env/index.js";
 import * as mongo from "../dist/mongo/index.js";
 import * as seo from "../dist/seo/index.js";
@@ -27,6 +28,8 @@ const ENTRIES = [
   "testing",
   "seo",
   "api-keys",
+  "docs",
+  "docs/files",
   "vcs",
 ];
 for (const entry of ENTRIES) {
@@ -93,6 +96,16 @@ assert.match(seo.llmsTxt({ title: "t", summary: "s", sections: [] }), /^# t\n\n>
 
 assert.match(apiKeys.generateApiKey("hpl_"), /^hpl_[A-Za-z0-9_-]{43}$/);
 assert.equal(apiKeys.API_LIMITS.api.limit, 60);
+
+const content = docs.defineContent({
+  guides: [
+    { slug: "make-a-pack", title: "Make a pack", description: "d", lastUpdated: "2026-10-04" },
+  ],
+});
+assert.deepEqual(content.sections, ["guides"]);
+assert.equal(docs.contentPath("guides", "make-a-pack"), "/guides/make-a-pack");
+assert.equal(docs.findEntry(content, "guides", "make-a-pack")?.title, "Make a pack");
+
 assert.equal(
   vcs.createRevisionStore({ db: async () => null, collection: "r" }).indexSpecs().length,
   3,
