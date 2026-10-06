@@ -18,6 +18,7 @@ import * as authReact from "../src/auth-react/index.js";
 import * as docsFiles from "../src/docs/files/index.js";
 import * as docs from "../src/docs/index.js";
 import * as env from "../src/env/index.js";
+import * as legal from "../src/legal/index.js";
 import * as mongo from "../src/mongo/index.js";
 import * as seo from "../src/seo/index.js";
 import * as server from "../src/server/index.js";
@@ -36,6 +37,7 @@ const ENTRIES = [
   "api-keys",
   "docs",
   "docs/files",
+  "legal",
   "vcs",
 ];
 
@@ -307,6 +309,22 @@ it("exports the documented docs/files API", () => {
     [
       "contentFileDrift",
       "readContentMarkdown",
+    ]
+  `);
+});
+
+it("exports the documented legal API", () => {
+  expect(Object.keys(legal).sort()).toMatchInlineSnapshot(`
+    [
+      "Changes",
+      "DataWeKeep",
+      "DmcaNotice",
+      "LEGAL_SLUGS",
+      "LegalContact",
+      "NoWarranty",
+      "Processors",
+      "YourRights",
+      "legalEntries",
     ]
   `);
 });

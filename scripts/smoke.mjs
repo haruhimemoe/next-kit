@@ -14,6 +14,7 @@ import * as auth from "../dist/auth/index.js";
 import * as authReact from "../dist/auth-react/index.js";
 import * as docs from "../dist/docs/index.js";
 import * as env from "../dist/env/index.js";
+import * as legal from "../dist/legal/index.js";
 import * as mongo from "../dist/mongo/index.js";
 import * as seo from "../dist/seo/index.js";
 import * as server from "../dist/server/index.js";
@@ -30,6 +31,7 @@ const ENTRIES = [
   "api-keys",
   "docs",
   "docs/files",
+  "legal",
   "vcs",
 ];
 for (const entry of ENTRIES) {
@@ -109,5 +111,19 @@ assert.equal(docs.findEntry(content, "guides", "make-a-pack")?.title, "Make a pa
 assert.equal(
   vcs.createRevisionStore({ db: async () => null, collection: "r" }).indexSpecs().length,
   3,
+);
+
+const legalSite = {
+  siteName: "x",
+  operator: "x",
+  contactEmail: "x@x.test",
+  effectiveDate: "2026-10-05",
+  stores: [],
+  processors: [],
+  cookies: [],
+};
+assert.deepEqual(
+  legal.legalEntries(legalSite).map((entry) => entry.slug),
+  legal.LEGAL_SLUGS,
 );
 console.log("smoke: ok");

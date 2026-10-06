@@ -13,6 +13,7 @@ The Next.js server plumbing the haruhime.moe tools share. [packs.haruhime.moe](h
 - **`/testing`:** Vitest helpers: one in-memory MongoDB per run, an msw server that refuses unhandled requests, and a fake env.
 - **`/api-keys`:** the shared key format (an app prefix like `hpk_` plus 32 random bytes), a key store over `api_keys`, and the `/api/v1` guard with the standard limits.
 - **`/docs`:** a content registry for an app's docs, guides and legal pages: sections, entries, app-made extra entries (like bb's tag pages), the path helpers a dynamic route needs, and `mdxToMarkdown` to turn bb-flavored MDX into plain Markdown. No runtime imports. **`/docs/files`:** reads the markdown files a registry's entries point at and reports drift between the registry and disk (node:fs).
+- **`/legal`:** the five-page legal convention (terms, privacy, your-privacy-rights, copyright, disclaimers). A `LegalSite` config, seven plain server-safe blocks (`LegalContact`, `DataWeKeep`, `Processors`, `YourRights`, `DmcaNotice`, `NoWarranty`, `Changes`) an app drops into its own legal MDX, and `legalEntries` for the app's content registry.
 - **`/vcs`:** document history in MongoDB on top of `@haruhimemoe/vcs`: one line of revisions per document, saves merged onto whatever landed since their base, revert, diffs, and autosave pruning.
 
 Every name, path, limit and message comes from the caller. There is no root entry point; import a subpath.
@@ -38,6 +39,7 @@ bun add @haruhimemoe/next-kit zod
 | `api-keys` | `mongodb` ^7.6.0 |
 | `docs` | nothing else |
 | `docs/files` | nothing else (`node:fs` is built in) |
+| `legal` | `react` ^19.3.0 (types only, for JSX) |
 | `vcs` | `mongodb` ^7.6.0, `@haruhimemoe/vcs` ^0.1.0 |
 
 ## Use
@@ -392,6 +394,16 @@ No runtime imports.
 | --- | --- |
 | `readContentMarkdown(content, section, slug, { root?, siteUrl, transforms? })` | Reads a registered entry's markdown file and converts it with `mdxToMarkdown` (using the entry's `title`). `root` defaults to `process.cwd()`. Returns null for an unregistered slug; rejects (ENOENT) when the slug is registered but its file is missing. |
 | `contentFileDrift(content, { root? })` | `{ missingFiles, unregistered }`: `missingFiles` lists registered entries with no file on disk (like `"guides/x.mdx"`); `unregistered` lists `.mdx` files on disk with no registry entry. `root` defaults to `process.cwd()`. |
+
+### legal
+
+| Export | What it does |
+| --- | --- |
+| `LEGAL_SLUGS`, `LegalSlug` | The five standard legal page slugs, in order: `"terms"`, `"privacy"`, `"your-privacy-rights"`, `"copyright"`, `"disclaimers"`. |
+| `LegalSite` | The config every block and `legalEntries` renders from: `siteName`, `operator`, `contactEmail`, `effectiveDate` (`YYYY-MM-DD`), `stores` (`LegalDataStore[]`), `processors` (`LegalProcessor[]`), `cookies` (`string[]`). |
+| `LegalDataStore`, `LegalProcessor` | One kind of data kept (`what`, `why`), and one third party that processes it (`name`, `purpose`, `link?`). |
+| `LegalContact`, `DataWeKeep`, `Processors`, `YourRights`, `DmcaNotice`, `NoWarranty`, `Changes` | The seven blocks. Each takes `{ site: LegalSite }` and renders plain semantic HTML (no `@haruhimemoe/ui`), so it inherits the app's MDX prose styling. `DataWeKeep` skips the cookies list when `site.cookies` is empty. `Processors` links a processor that has a `link`, and plain-texts one that doesn't. |
+| `legalEntries(site, pages?)` | The five `ContentEntry` records (`docs`'s registry shape) for the legal convention, with the default title and description (`site.siteName` filled in) and `lastUpdated` set to `site.effectiveDate`. `pages` overrides any field per slug; everything else keeps the default. |
 
 ### vcs
 

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-`@haruhimemoe/next-kit`: the Next.js server plumbing packs.haruhime.moe and pools.haruhime.moe share. Eleven subpath entry points (`server`, `env`, `mongo`, `auth`, `auth-react`, `testing`, `seo`, `api-keys`, `docs`, `docs/files`, `vcs`) and no root entry point. `seo` serves all four haruhime.moe sites (www, packs, pools, bb). It moved out of the two apps, which each had a copy. The package also ships one bin, `next-kit` (`dist/check/cli.js`), for `next-kit check` in CI.
+`@haruhimemoe/next-kit`: the Next.js server plumbing packs.haruhime.moe and pools.haruhime.moe share. Twelve subpath entry points (`server`, `env`, `mongo`, `auth`, `auth-react`, `testing`, `seo`, `api-keys`, `docs`, `docs/files`, `legal`, `vcs`) and no root entry point. `seo` serves all four haruhime.moe sites (www, packs, pools, bb). It moved out of the two apps, which each had a copy. The package also ships one bin, `next-kit` (`dist/check/cli.js`), for `next-kit check` in CI.
 
 ## Rules
 
@@ -27,6 +27,7 @@
 - `src/seo/`: `site.ts` (`Site`, `HARUHIME_ORG`, `pageTitle` and the short suffix modes, URL/date/@id helpers), `describe.ts` (`clampDescription`), `metadata.ts`, `robots.ts` (`AI_BOTS`), `sitemap.ts`, `ld-site.ts` (graph, Organization, WebSite, WebApplication, breadcrumbs, ItemList), `ld-content.ts` (FAQ, HowTo, TechArticle, CreativeWork, Dataset), `ld.ts` (the `ld` namespace, `serializeLd`), `llms.ts` (`llmsTxt`, `llmsFull`, `textResponse`).
 - `src/api-keys/`: `format.ts` (the key format, `generateApiKey`, `hashApiKey`, loads `node:crypto`), `store.ts` (`createApiKeyStore` over `api_keys`), `guard.ts` (`createApiKeyGuard`, `API_LIMITS`).
 - `src/docs/`: `registry.ts` (`CONTENT_SECTIONS`, `SECTION_LABELS`, `defineContent`, `contentPath`, `markdownPath`, `findEntry`, `contentParams`), `files/` a separate entry point (`docs/files`) that reads the markdown files a registry's entries point at; loads `node:fs`, kept out of the pure `docs` entry point on purpose.
+- `src/legal/`: `types.ts` (`LegalSite`, `LegalProcessor`, `LegalDataStore`, `LEGAL_SLUGS`), `blocks.tsx` (the seven blocks: `LegalContact`, `DataWeKeep`, `Processors`, `YourRights`, `DmcaNotice`, `NoWarranty`, `Changes`; plain server-safe React, no hooks, no `@haruhimemoe/ui`), `entries.ts` (`legalEntries`, the five `ContentEntry` records for the five-page convention, with per-slug overrides). next-kit's first `.tsx` entry point.
 - `src/check/`: `standards.ts` (`checkStandards`, the crawl and API route standards), `cli.ts` (the `next-kit check` bin: `runCheck`, walks `src/app`). Not a subpath entry point; `package.json`'s `bin` points at `dist/check/cli.js` instead, and `tests/exports.test.ts`'s 200-line check covers it alongside the entry points.
 - `tests/`: one folder per entry point, plus `check/` (with `fixtures/`, empty files, not real code); `helpers/db.ts` and `helpers/auth.ts`; `setup/mongo-global.ts`; `exports.test.ts`.
 - `scripts/smoke.mjs`: imports the built `dist/` of every entry point (`bun run test:dist`).

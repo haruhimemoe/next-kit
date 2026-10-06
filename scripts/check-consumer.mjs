@@ -52,6 +52,7 @@ import { createAccountStore, createAuthComponents, createSignedInMarker, osuAvat
 import { contentPath, defineContent, findEntry, type Content } from "@haruhimemoe/next-kit/docs";
 import "@haruhimemoe/next-kit/docs/files";
 import { createServerEnv, EnvError, OSU_APP_PLACEHOLDERS, OSU_APP_SECRET_KEYS, osuAppEnvSchema } from "@haruhimemoe/next-kit/env";
+import { LegalContact, legalEntries, type LegalSite } from "@haruhimemoe/next-kit/legal";
 import { createMongo, defineCollections, ensureIndexes, type IndexSpec } from "@haruhimemoe/next-kit/mongo";
 import { createRateLimiter, parseJsonBody, parseIdList, refuseCrossSite, type RateLimitRule } from "@haruhimemoe/next-kit/server";
 import { HARUHIME_ORG, ld, pageMetadata, robots, serializeLd, sitemapEntries, type Site } from "@haruhimemoe/next-kit/seo";
@@ -104,6 +105,9 @@ type _ = typeof setupTestDb;
 const content: Content = defineContent({ guides: [{ slug: "make-a-pack", title: "Make a pack", description: "d", lastUpdated: "2026-10-04" }] });
 if (contentPath("guides", "make-a-pack") !== "/guides/make-a-pack") throw new Error("docs path");
 if (findEntry(content, "guides", "make-a-pack")?.slug !== "make-a-pack") throw new Error("docs find");
+const legalSite: LegalSite = { siteName: "x", operator: "x", contactEmail: "x@x.test", effectiveDate: "2026-10-05", stores: [], processors: [], cookies: [] };
+if (legalEntries(legalSite).length !== 5) throw new Error("legal entries");
+if (!LegalContact({ site: legalSite })) throw new Error("legal block");
 console.log("consumer: ok");
 `;
 

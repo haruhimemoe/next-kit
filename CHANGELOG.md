@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-05
+
+### Added
+- `legal` entry point: the five-page legal convention every service ships (terms, privacy, your-privacy-rights, copyright, disclaimers). A `LegalSite` config (site name, operator, contact email, effective date, data stores, processors, cookies), seven plain server-safe blocks an app drops into its own legal MDX (`LegalContact`, `DataWeKeep`, `Processors`, `YourRights`, `DmcaNotice`, `NoWarranty`, `Changes`; no hooks, no `@haruhimemoe/ui`), and `legalEntries(site, pages?)` for the five standard `ContentEntry` records so apps stop hand-writing the same titles and descriptions. next-kit's first `.tsx` entry point.
+
 ## [0.8.0] - 2026-10-05
 
 ### Changed
