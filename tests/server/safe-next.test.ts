@@ -90,7 +90,7 @@ describe("safeAbsoluteNext", () => {
     ["HARUHIME.MOE", "no scheme at all"],
     ["https://new.haruhime.moe/", "an unlisted subdomain"],
     [`https://haruhime.moe/${"a".repeat(600)}`, "longer than MAX_NEXT_LENGTH"],
-  ])("replaces %j (%s) with the fallback", (raw) => {
+  ])("replaces %j (%s) with the fallback", (raw: string | null | undefined, _why: string) => {
     expect(safeAbsoluteNext(raw, { hosts, fallback })).toBe(fallback);
   });
 });

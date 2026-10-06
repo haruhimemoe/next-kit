@@ -9,9 +9,18 @@
  *       session: set with it, cleared on sign-out or a get-session that finds none. The app's
  *       hooks guard user, account and session creation. Moved from pools (src/lib/auth.ts);
  *       packs lacked accountLinking and onAPIError.
+ *
+ *       0.12: the hub passes cookieDomain (".haruhime.moe") to put every better-auth cookie,
+ *       including OAuth state and PKCE, on the parent domain (better-auth's
+ *       advanced.crossSubDomainCookies). That's acceptable only because every OAuth flow starts
+ *       and ends on the hub; satellites never redirect through OAuth and never pass
+ *       cookieDomain. trustedOrigins is passed straight through to better-auth, for the
+ *       satellite origins the hub's sign-in and callback may redirect back to. The session is
+ *       now 30 days with a 1-day updateAge (createSessionReader pings the hub to refresh it for
+ *       satellite-only visitors).
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Sep 28, 2026
+ * @modified Tue Oct 6, 2026
  */
 
 import { type BetterAuthOptions, betterAuth } from "better-auth";
@@ -44,6 +53,12 @@ export type OsuAuthHooks = {
   beforeSessionCreate?: (session: AuthRow) => Promise<boolean | undefined>;
 };
 
+/** How long a session lasts, and how often it extends on a get-session: 30 days, refreshed
+ * once a day. Satellites that only see a request every few days still extend it, through
+ * createSessionReader's ping to the hub. */
+export const SESSION_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 30;
+export const SESSION_UPDATE_AGE_SECONDS = 60 * 60 * 24;
+
 /** createOsuAuth's options. */
 export type OsuAuthOptions<F extends UserFields = NoFields> = {
   /** The osu! OAuth app. */
@@ -55,8 +70,15 @@ export type OsuAuthOptions<F extends UserFields = NoFields> = {
   /** The app's database, and the client it's on (for the adapter). */
   db: Db;
   client: MongoClient;
-  /** The signed-in marker cookie's name, like "pools-signed-in". */
+  /** The signed-in marker cookie's name, like "pools-signed-in" (0.11 apps) or
+   * SHARED_MARKER_COOKIE (the hub, 0.12). */
   markerCookie: string;
+  /** The hub only: puts every better-auth cookie (session, OAuth state, PKCE) on this parent
+   * domain, like ".haruhime.moe". Leave unset for a single-DB app's own cookies. */
+  cookieDomain?: string;
+  /** The satellite origins the hub's sign-in and OAuth callback may redirect back to. Passed
+   * straight through to better-auth's trustedOrigins. */
+  trustedOrigins?: string[];
   /** Where errors with no page to return to land (default /signin). */
   signInPath?: string;
   hooks?: OsuAuthHooks;
@@ -73,7 +95,8 @@ const guard =
 /**
  * @function createOsuAuth
  * @param options {OsuAuthOptions<F>} osu! credentials, better-auth URL and secret, the
- *        database, the marker cookie, the sign-in page, the hooks and extra user fields
+ *        database, the marker cookie, the cookie domain and trusted origins (hub only), the
+ *        sign-in page, the hooks and extra user fields
  * @returns the better-auth instance (use `typeof` it with inferAdditionalFields on the client)
  */
 export const createOsuAuth = <F extends UserFields = NoFields>({
@@ -84,6 +107,8 @@ export const createOsuAuth = <F extends UserFields = NoFields>({
   db,
   client,
   markerCookie,
+  cookieDomain,
+  trustedOrigins,
   signInPath = DEFAULT_SIGN_IN_PATH,
   hooks = {},
   userFields,
@@ -93,6 +118,7 @@ export const createOsuAuth = <F extends UserFields = NoFields>({
     sameSite: "lax" as const,
     secure: baseURL.startsWith("https://"),
     httpOnly: false,
+    ...(cookieDomain ? { domain: cookieDomain } : {}),
   };
   const beforeUser = guard(hooks.beforeUserCreate);
   const beforeAccount = guard(hooks.beforeAccountCreate);
@@ -100,10 +126,20 @@ export const createOsuAuth = <F extends UserFields = NoFields>({
   return betterAuth({
     baseURL,
     secret,
+    trustedOrigins,
     database: mongodbAdapter(db, { client, transaction: false }),
     // These fields must accept input: better-auth 1.7 drops `input: false` fields from the OAuth
     // profile too. So no client may call /update-user: identity only ever comes from osu!.
     disabledPaths: ["/update-user"],
+    session: {
+      expiresIn: SESSION_EXPIRES_IN_SECONDS,
+      updateAge: SESSION_UPDATE_AGE_SECONDS,
+    },
+    advanced: {
+      crossSubDomainCookies: cookieDomain
+        ? { enabled: true as const, domain: cookieDomain }
+        : { enabled: false as const },
+    },
     account: {
       // `<osuId>@osu.local` belongs to whoever osu! says has that id.
       accountLinking: { trustedProviders: [OSU_PROVIDER_ID], requireLocalEmailVerified: false },

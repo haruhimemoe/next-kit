@@ -14,6 +14,8 @@ export {
   type OsuAuth,
   type OsuAuthHooks,
   type OsuAuthOptions,
+  SESSION_EXPIRES_IN_SECONDS,
+  SESSION_UPDATE_AGE_SECONDS,
   type UserFields,
 } from "./create.js";
 export { AUTH_INDEX_SPECS, AUTH_INDEXES } from "./indexes.js";

@@ -5,10 +5,18 @@
  *       sign in cost none. The server sets it with the session and clears it on sign-out or a
  *       missing session (createOsuAuth in @haruhimemoe/next-kit/auth). Browser-safe. Moved from
  *       packs and pools (src/lib/signed-in-marker.ts), which differed only in the cookie name.
+ *
+ *       0.12: SHARED_MARKER_COOKIE is the one marker name the hub and every satellite agree on
+ *       (unlike the per-app markerCookie createOsuAuth took before, it lives on the parent
+ *       domain so every subdomain reads the same cookie). Only the hub's createOsuAuth sets or
+ *       clears it; satellites trust it for UI hints only and never write it.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Sep 28, 2026
+ * @modified Tue Oct 6, 2026
  */
+
+/** The shared signed-in marker, on the parent domain, every app in the identity cluster reads. */
+export const SHARED_MARKER_COOKIE = "haruhime-signed-in";
 
 /** The marker for one cookie name. */
 export type SignedInMarker = {

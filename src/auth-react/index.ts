@@ -41,7 +41,12 @@ export {
 } from "./auth-components.js";
 export { OSU_AVATAR_HOSTS, osuAvatarSrc } from "./avatar.js";
 export { DeleteAccountForm, type DeleteAccountFormProps } from "./DeleteAccountForm.js";
-export { createSignedInMarker, markerMaxAge, type SignedInMarker } from "./marker.js";
+export {
+  createSignedInMarker,
+  markerMaxAge,
+  SHARED_MARKER_COOKIE,
+  type SignedInMarker,
+} from "./marker.js";
 export { RestoreSignedIn, type RestoreSignedInProps } from "./RestoreSignedIn.js";
 export {
   SignInWithOsu,
