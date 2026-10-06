@@ -15,6 +15,9 @@ import type { LegalSite } from "./types.js";
 /** Every block's props: the site config it renders from. */
 export type LegalBlockProps = { site: LegalSite };
 
+/** `Changes` props: the site config, plus this page's own date when it differs from the site's. */
+export type ChangesProps = LegalBlockProps & { date?: string | undefined };
+
 /**
  * @function LegalContact
  * @param props {LegalBlockProps} the site config
@@ -136,7 +139,7 @@ export const YourRights = ({ site }: LegalBlockProps): ReactElement => (
 export const DmcaNotice = ({ site }: LegalBlockProps): ReactElement => (
   <section>
     <h2>Copyright and DMCA</h2>
-    <p>{site.siteName} hosts no files. See the app's own page for what that means here.</p>
+    {site.hosting ? <p>{site.hosting}</p> : null}
     <p>
       Our designated agent for copyright notices is{" "}
       <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>.
@@ -185,12 +188,12 @@ export const NoWarranty = ({ site }: LegalBlockProps): ReactElement => (
 
 /**
  * @function Changes
- * @param props {LegalBlockProps} the site config
+ * @param props {ChangesProps} the site config and an optional per-page date
  * @returns {ReactElement} the standard "we may update this page" line with its effective date
  */
-export const Changes = ({ site }: LegalBlockProps): ReactElement => (
+export const Changes = ({ site, date }: ChangesProps): ReactElement => (
   <section>
     <h2>Changes</h2>
-    <p>We may update this page. It was last updated on {site.effectiveDate}.</p>
+    <p>We may update this page. It was last updated on {date ?? site.effectiveDate}.</p>
   </section>
 );

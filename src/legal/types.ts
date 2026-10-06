@@ -48,4 +48,6 @@ export type LegalSite = {
   processors: readonly LegalProcessor[];
   /** The cookies the app sets, one line each, in `DataWeKeep`'s cookie list. */
   cookies: readonly string[];
+  /** One sentence on what users can post or upload, shown by `DmcaNotice`. Omitted: no line. */
+  hosting?: string | undefined;
 };

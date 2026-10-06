@@ -101,10 +101,15 @@ describe("YourRights", () => {
 });
 
 describe("DmcaNotice", () => {
-  it("names the agent and the no-hosting line", () => {
-    render(<DmcaNotice site={SITE} />);
-    expect(screen.getByText(/example\.test hosts no files/)).toBeTruthy();
+  it("names the agent and the hosting line when given", () => {
+    render(<DmcaNotice site={{ ...SITE, hosting: "Users upload nothing." }} />);
+    expect(screen.getByText("Users upload nothing.")).toBeTruthy();
     expect(screen.getByText("legal@example.test")).toBeTruthy();
+  });
+
+  it("leaves the hosting line out when not set", () => {
+    const { container } = render(<DmcaNotice site={SITE} />);
+    expect(container.querySelector("section > p")?.textContent).toMatch(/designated agent/);
   });
 });
 
@@ -120,5 +125,10 @@ describe("Changes", () => {
   it("shows the effective date", () => {
     render(<Changes site={SITE} />);
     expect(screen.getByText(/2026-10-05/)).toBeTruthy();
+  });
+
+  it("prefers the page's own date", () => {
+    render(<Changes site={SITE} date="2026-09-01" />);
+    expect(screen.getByText(/2026-09-01/)).toBeTruthy();
   });
 });

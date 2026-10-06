@@ -10,6 +10,7 @@
 
 export {
   Changes,
+  type ChangesProps,
   DataWeKeep,
   DmcaNotice,
   type LegalBlockProps,

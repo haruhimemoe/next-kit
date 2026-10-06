@@ -400,9 +400,9 @@ No runtime imports.
 | Export | What it does |
 | --- | --- |
 | `LEGAL_SLUGS`, `LegalSlug` | The five standard legal page slugs, in order: `"terms"`, `"privacy"`, `"your-privacy-rights"`, `"copyright"`, `"disclaimers"`. |
-| `LegalSite` | The config every block and `legalEntries` renders from: `siteName`, `operator`, `contactEmail`, `effectiveDate` (`YYYY-MM-DD`), `stores` (`LegalDataStore[]`), `processors` (`LegalProcessor[]`), `cookies` (`string[]`). |
+| `LegalSite` | The config every block and `legalEntries` renders from: `siteName`, `operator`, `contactEmail`, `effectiveDate` (`YYYY-MM-DD`), `stores` (`LegalDataStore[]`), `processors` (`LegalProcessor[]`), `cookies` (`string[]`), optional `hosting` (one sentence on what users can post, shown by `DmcaNotice`). |
 | `LegalDataStore`, `LegalProcessor` | One kind of data kept (`what`, `why`), and one third party that processes it (`name`, `purpose`, `link?`). |
-| `LegalContact`, `DataWeKeep`, `Processors`, `YourRights`, `DmcaNotice`, `NoWarranty`, `Changes` | The seven blocks. Each takes `{ site: LegalSite }` and renders plain semantic HTML (no `@haruhimemoe/ui`), so it inherits the app's MDX prose styling. `DataWeKeep` skips the cookies list when `site.cookies` is empty. `Processors` links a processor that has a `link`, and plain-texts one that doesn't. |
+| `LegalContact`, `DataWeKeep`, `Processors`, `YourRights`, `DmcaNotice`, `NoWarranty`, `Changes` | The seven blocks. Each takes `{ site: LegalSite }` and renders plain semantic HTML (no `@haruhimemoe/ui`), so it inherits the app's MDX prose styling. `DataWeKeep` skips the cookies list when `site.cookies` is empty. `Processors` links a processor that has a `link`, and plain-texts one that doesn't. `DmcaNotice` prints `site.hosting` only when set. `Changes` also takes an optional `date` for a page updated on its own day. |
 | `legalEntries(site, pages?)` | The five `ContentEntry` records (`docs`'s registry shape) for the legal convention, with the default title and description (`site.siteName` filled in) and `lastUpdated` set to `site.effectiveDate`. `pages` overrides any field per slug; everything else keeps the default. |
 
 ### vcs
