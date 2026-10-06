@@ -30,7 +30,13 @@ import { genericOAuth } from "better-auth/plugins";
 import type { Db, MongoClient } from "mongodb";
 import { markerMaxAge } from "../auth-react/marker.js";
 import { DEFAULT_SIGN_IN_PATH } from "../server/safe-next.js";
-import { OSU_PROVIDER_ID, OSU_USER_FIELDS, osuProvider, withoutTokens } from "./osu.js";
+import {
+  IDENTITY_USER_FIELDS,
+  OSU_PROVIDER_ID,
+  OSU_USER_FIELDS,
+  osuProvider,
+  withoutTokens,
+} from "./osu.js";
 
 /** Extra fields on user rows, as better-auth's user.additionalFields takes them. */
 export type UserFields = NonNullable<NonNullable<BetterAuthOptions["user"]>["additionalFields"]>;
@@ -146,7 +152,9 @@ export const createOsuAuth = <F extends UserFields = NoFields>({
     },
     onAPIError: { errorURL: new URL(signInPath, baseURL).toString() },
     user: {
-      additionalFields: { ...OSU_USER_FIELDS, ...userFields } as typeof OSU_USER_FIELDS & F,
+      additionalFields: { ...OSU_USER_FIELDS, ...IDENTITY_USER_FIELDS, ...userFields } as typeof OSU_USER_FIELDS &
+        typeof IDENTITY_USER_FIELDS &
+        F,
     },
     databaseHooks: {
       user: {

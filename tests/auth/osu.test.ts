@@ -13,6 +13,7 @@ import { describe, expect, it } from "vitest";
 import {
   AUTH_INDEX_SPECS,
   AUTH_INDEXES,
+  IDENTITY_USER_FIELDS,
   OSU_PROVIDER_ID,
   osuProfileToUser,
   osuProvider,
@@ -132,5 +133,23 @@ describe("AUTH_INDEX_SPECS", () => {
     await expect(
       db().collection("session").insertOne({ token: "t", userId: new ObjectId() }),
     ).rejects.toMatchObject(duplicate);
+  });
+});
+
+describe("IDENTITY_USER_FIELDS", () => {
+  it("is every identity field from section 3 of the spec, none client-settable", () => {
+    expect(Object.keys(IDENTITY_USER_FIELDS)).toEqual([
+      "locale",
+      "notificationPrefs",
+      "bannedAt",
+      "banReason",
+      "limits",
+      "discordId",
+      "discordUsername",
+    ]);
+    expect(Object.values(IDENTITY_USER_FIELDS).every((field) => field.input === false)).toBe(
+      true,
+    );
+    expect(IDENTITY_USER_FIELDS.bannedAt.type).toBe("date");
   });
 });

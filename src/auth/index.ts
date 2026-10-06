@@ -27,6 +27,7 @@ export {
   type SessionReaderOptions,
 } from "./session-reader.js";
 export {
+  IDENTITY_USER_FIELDS,
   OSU_PROVIDER_ID,
   OSU_USER_FIELDS,
   type OsuProviderOptions,
@@ -36,8 +37,13 @@ export {
 } from "./osu.js";
 export {
   getOsuUser,
+  getSessionUser,
   type OsuSession,
   type OsuSessionUser,
+  requireAdmin,
+  requireSession,
+  type SatelliteSessionReader,
   type SessionReader,
+  type SessionSource,
   toSessionUser,
 } from "./session.js";

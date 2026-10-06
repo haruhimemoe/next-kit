@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+- Identity core (0.12.0, breaking for every app — see below): `mongo`'s `createMongo` gains `identityDbName`/`getIdentityDb()` so the hub reads an `identity` database on the same client, `buildIdentityIndexes` builds its four indexes, `auth`'s `createOsuAuth` gains `cookieDomain`/`trustedOrigins` for the hub (every better-auth cookie, including OAuth state and PKCE, on the parent domain) and a 30-day session with a 1-day `updateAge`, `createSessionReader` reads a satellite's session with zero database writes (raw cookie verification, no `betterAuth()` instance) and pings the hub to refresh a session past `updateAge`, `getSessionUser`/`requireSession`/`requireAdmin` read either source and refuse a banned user, `server`'s `safeAbsoluteNext` is the hub's exact-hostname allowlist for a satellite's absolute `next`, and `check`'s `next-kit migrate-identity` merges `bb`/`packs`/`pools` users into `identity` by `osuId` (dry run by default).
+
+### Changed
+- **Breaking.** `mongo`'s `onConnect` now takes one `{ db, identityDb?, client }` argument instead of `(db, client)`.
+- **Breaking.** The identity user gains `locale`, `notificationPrefs`, `bannedAt`, `banReason`, `limits`, `discordId` and `discordUsername` (`auth`'s `IDENTITY_USER_FIELDS`, merged into every `createOsuAuth` instance's `additionalFields`, single-DB apps included). `OsuSessionUser` and `OsuSession` gain `bannedAt`. **packs' `system` field does not move with this release**: it stays a plain field on packs' own `user` collection for now. Once packs cuts over to the shared `identity` database (after the migration script runs), `system` must move to an app-side profile collection keyed by `userId`, because the identity user row is shared with `bb` and `pools` and has no room for one app's own flag. Do that move in the same deploy that switches packs to `createSessionReader`, not before.
+
+
 ## [0.11.1] - 2026-10-06
 
 ### Fixed
