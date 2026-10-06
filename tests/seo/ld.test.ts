@@ -5,7 +5,7 @@
  *       output that can't end a <script> and parses back to the same data.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Sep 28, 2026
+ * @modified Tue Oct 6, 2026
  */
 
 import { describe, expect, it } from "vitest";
@@ -36,10 +36,10 @@ describe("site nodes", () => {
       name: "haruhime.moe",
       url: "https://www.haruhime.moe",
       logo: "https://www.haruhime.moe/apple-icon.png",
-      email: "contact@haruhime.moe",
+      email: "haruhime@haruhime.moe",
       sameAs: [
         "https://github.com/haruhimemoe",
-        "https://discord.gg/bKy9kjMV4y",
+        "https://haruhime.moe/discord",
         "https://www.npmjs.com/org/haruhimemoe",
       ],
     });

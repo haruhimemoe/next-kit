@@ -4,7 +4,7 @@
  *       with the site's values passed in.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Sep 28, 2026
+ * @modified Tue Oct 6, 2026
  */
 
 import { describe, expect, it } from "vitest";
@@ -15,7 +15,7 @@ import {
 } from "../../src/server/index.js";
 
 const SITE = {
-  contactEmail: "contact@haruhime.moe",
+  contactEmail: "haruhime@haruhime.moe",
   siteUrl: "https://pools.haruhime.moe",
   policyUrl: "https://github.com/haruhimemoe/pools.haruhime.moe/blob/main/SECURITY.md",
 };
@@ -25,7 +25,7 @@ describe("buildSecurityTxt", () => {
   it("writes the five fields in order", () => {
     expect(buildSecurityTxt({ ...SITE, now: NOW })).toBe(
       [
-        "Contact: mailto:contact@haruhime.moe",
+        "Contact: mailto:haruhime@haruhime.moe",
         "Expires: 2027-09-23T00:00:00.000Z",
         "Preferred-Languages: en",
         "Canonical: https://pools.haruhime.moe/.well-known/security.txt",
@@ -59,12 +59,12 @@ describe("buildSecurityTxt contactUrl", () => {
       contactUrl: "https://github.com/x/security",
     }).split("\n");
     expect(lines[0]).toBe("Contact: https://github.com/x/security");
-    expect(lines[1]).toBe("Contact: mailto:contact@haruhime.moe");
+    expect(lines[1]).toBe("Contact: mailto:haruhime@haruhime.moe");
   });
 
   it("is unchanged without it", () => {
     expect(buildSecurityTxt({ ...SITE, now: NOW }).split("\n")[0]).toBe(
-      "Contact: mailto:contact@haruhime.moe",
+      "Contact: mailto:haruhime@haruhime.moe",
     );
   });
 });

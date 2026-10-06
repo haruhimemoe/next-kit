@@ -467,6 +467,6 @@ MIT. See [LICENSE](LICENSE).
 
 ## Contributing
 
-Questions and feedback are welcome on the haruhime.moe [Discord server](https://discord.gg/bKy9kjMV4y). Bugs and ideas go in [issues](https://github.com/haruhimemoe/next-kit/issues).
+Questions and feedback are welcome on the haruhime.moe [Discord server](https://haruhime.moe/discord). Bugs and ideas go in [issues](https://github.com/haruhimemoe/next-kit/issues).
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) to work on the package. Changes are logged in [CHANGELOG.md](CHANGELOG.md). Report a vulnerability as [SECURITY.md](SECURITY.md) describes.
