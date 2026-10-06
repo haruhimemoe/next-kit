@@ -104,7 +104,11 @@ describe("createSessionReader", () => {
       { headers: { cookie: string } },
     ];
     expect(url.toString()).toBe("https://haruhime.moe/api/auth/get-session");
-    expect(init.headers.cookie).toBe(user.cookie);
+    // Only the session cookie is forwarded, and redirects are never followed.
+    expect(init.headers.cookie).toBe(
+      user.cookie.split("; ").find((part) => part.includes("session_token")),
+    );
+    expect((init as { redirect?: string }).redirect).toBe("manual");
   });
 
   it("never pings the hub for a fresh session", async () => {
@@ -123,5 +127,34 @@ describe("createSessionReader", () => {
     });
     const result = await reader({ fetchImpl }).getSession(new Headers({ cookie: user.cookie }));
     expect(result).not.toBeNull();
+  });
+
+  it("refuses a non-canonical signature that still decodes to the right bytes", async () => {
+    const user = await createTestUser(auth, 56);
+    const part = user.cookie.split("; ").find((c) => c.includes("session_token")) as string;
+    const [name, value] = [part.slice(0, part.indexOf("=")), part.slice(part.indexOf("=") + 1)];
+    const decoded = decodeURIComponent(value);
+    const dot = decoded.lastIndexOf(".");
+    // base64url spelling with the pad stripped: Buffer.from(…, "base64") would accept it.
+    const loose = `${decoded.slice(0, dot)}.${decoded
+      .slice(dot + 1)
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=$/, "")}`;
+    const cookie = `${name}=${encodeURIComponent(loose)}`;
+    expect(await reader().getSession(new Headers({ cookie }))).toBeNull();
+  });
+
+  it("prefers the __Secure- cookie over a planted bare-name one", async () => {
+    const user = await createTestUser(auth, 57);
+    const part = user.cookie.split("; ").find((c) => c.includes("session_token")) as string;
+    const value = part.slice(part.indexOf("=") + 1);
+    const cookie = `better-auth.session_token=junk; __Secure-better-auth.session_token=${value}`;
+    expect(await reader().getSession(new Headers({ cookie }))).not.toBeNull();
+  });
+
+  it("refuses a plain-http hub outside localhost", () => {
+    expect(() => reader({ hubUrl: "http://haruhime.moe" })).toThrow(/https/);
+    expect(() => reader({ hubUrl: "http://localhost:3000" })).not.toThrow();
   });
 });

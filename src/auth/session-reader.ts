@@ -80,13 +80,30 @@ export type SessionReaderOptions = {
  * banned user is still returned (bannedAt set): refusing them is requireSession's job. */
 export type SessionReader = { getSession: (headers: Headers) => Promise<ReadSession | null> };
 
+/** A canonical base64 HMAC-SHA256: 43 chars and one "=" pad, as better-call's makeSignature
+ * writes it and its getSignedCookie requires. */
+const SIGNATURE_PATTERN = /^[A-Za-z0-9+/]{42}[AEIMQUYcgkosw048]=$/;
+
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+/** The hub's origin, refusing anything but https (plain http only for localhost): the refresh
+ * ping forwards the session cookie there. */
+const hubOrigin = (hubUrl: string): string => {
+  const url = new URL(hubUrl);
+  if (url.protocol !== "https:" && !(url.protocol === "http:" && LOCAL_HOSTS.has(url.hostname))) {
+    throw new Error(`createSessionReader: hubUrl must be https (got ${url.protocol}//${url.host})`);
+  }
+  return url.origin;
+};
+
 const parseCookieHeader = (header: string): Map<string, string> => {
   const cookies = new Map<string, string>();
   for (const part of header.split(";")) {
     const index = part.indexOf("=");
     if (index === -1) continue;
     const name = part.slice(0, index).trim();
-    if (!name) continue;
+    // First one wins, same as better-call's parseCookies.
+    if (!name || cookies.has(name)) continue;
     cookies.set(name, part.slice(index + 1).trim());
   }
   return cookies;
@@ -96,16 +113,21 @@ const parseCookieHeader = (header: string): Map<string, string> => {
  * @function findSessionCookie
  * @param headers {Headers} request headers
  * @param cookieName {string} better-auth's base cookie name
- * @returns {string | null} the raw cookie value, trying the bare name and the __Secure-/__Host-
- *          prefixed ones (whichever better-auth's own secureCookiePrefix picked)
+ * @returns {{ name: string; value: string } | null} the cookie's name and raw value, trying
+ *          the bare name and the __Secure-/__Host- prefixed ones (whichever better-auth's own secureCookiePrefix picked), secure first
  */
-const findSessionCookie = (headers: Headers, cookieName: string): string | null => {
+const findSessionCookie = (
+  headers: Headers,
+  cookieName: string,
+): { name: string; value: string } | null => {
   const header = headers.get("cookie");
   if (!header) return null;
   const cookies = parseCookieHeader(header);
-  for (const name of [cookieName, `__Secure-${cookieName}`, `__Host-${cookieName}`]) {
+  // The __Secure- name first: it's the one better-auth sets on https, and a stale or planted
+  // bare-name cookie must not shadow it.
+  for (const name of [`__Secure-${cookieName}`, `__Host-${cookieName}`, cookieName]) {
     const value = cookies.get(name);
-    if (value !== undefined) return value;
+    if (value !== undefined) return { name, value };
   }
   return null;
 };
@@ -123,13 +145,12 @@ const verifySignedToken = (value: string, secret: string): string | null => {
   if (separator <= 0 || separator === value.length - 1) return null;
   const token = value.slice(0, separator);
   const signature = value.slice(separator + 1);
+  // better-call's getSignedCookie only accepts a canonical 44-char padded base64 signature.
+  // Buffer.from(…, "base64") is lenient (skips bad chars, takes base64url), so check the shape
+  // first or non-canonical signatures would verify here and fail on the hub.
+  if (!SIGNATURE_PATTERN.test(signature)) return null;
   const expected = createHmac("sha256", secret).update(token).digest();
-  let given: Buffer;
-  try {
-    given = Buffer.from(signature, "base64");
-  } catch {
-    return null;
-  }
+  const given = Buffer.from(signature, "base64");
   if (given.length !== expected.length) return null;
   return timingSafeEqual(given, expected) ? token : null;
 };
@@ -149,19 +170,21 @@ export const createSessionReader = ({
   fetchImpl = fetch,
   now = () => Date.now(),
 }: SessionReaderOptions): SessionReader => {
+  const pingUrl = new URL("/api/auth/get-session", hubOrigin(hubUrl));
+  // Only the session cookie is forwarded, never the satellite's other cookies.
   const pingHub = (cookieHeader: string): void => {
-    fetchImpl(new URL("/api/auth/get-session", hubUrl), {
-      headers: { cookie: cookieHeader },
-    }).catch(() => {
+    // redirect: "manual": the cookie only ever goes to the hub's own origin, never to wherever a
+    // redirect points.
+    fetchImpl(pingUrl, { headers: { cookie: cookieHeader }, redirect: "manual" }).catch(() => {
       // Fire-and-forget: a failed ping just means this session ages out from its last real
       // refresh instead of being extended. The caller's read already has its answer.
     });
   };
 
   const getSession = async (headers: Headers): Promise<ReadSession | null> => {
-    const cookieHeader = headers.get("cookie");
-    const raw = findSessionCookie(headers, cookieName);
-    if (!raw || !cookieHeader) return null;
+    const found = findSessionCookie(headers, cookieName);
+    if (!found) return null;
+    const raw = found.value;
     let decoded: string;
     try {
       decoded = decodeURIComponent(raw);
@@ -179,7 +202,7 @@ export const createSessionReader = ({
       .findOne({ _id: session.userId } as Filter<UserDoc>);
     if (!user) return null;
 
-    if (now() - session.updatedAt.getTime() > updateAgeSeconds * 1000) pingHub(cookieHeader);
+    if (now() - session.updatedAt.getTime() > updateAgeSeconds * 1000) pingHub(`${found.name}=${raw}`);
 
     return {
       user: {
