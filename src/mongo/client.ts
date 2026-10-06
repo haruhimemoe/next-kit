@@ -8,9 +8,16 @@
  *       clients; a failed connect is never cached, so one DNS blip can't poison the process.
  *       Moved from packs and pools (src/lib/db.ts), identical apart from the name, the global
  *       key and pools' post-connect work.
+ *
+ *       0.12: an app may also pass `identityDbName`, which gets `getIdentityDb()` on the same
+ *       client (no second connection). This is single-DB by default: 0.11 apps that never set
+ *       `identityDbName` keep working unchanged, and `getIdentityDb()` throws for them rather
+ *       than silently returning the app's own database. `onConnect` now receives
+ *       `{ db, identityDb, client }` instead of three positional arguments, a signature change;
+ *       `identityDb` is only present when `identityDbName` was given.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Sep 28, 2026
+ * @modified Tue Oct 6, 2026
  */
 
 import { type Db, MongoClient } from "mongodb";
@@ -22,10 +29,17 @@ export const DEFAULT_MAX_POOL_SIZE = 5;
 /** Fail fast when the cluster is unreachable: a hung function is billed for every second. */
 export const DEFAULT_SERVER_SELECTION_TIMEOUT_MS = 5000;
 
+/** What onConnect receives: the app's own database, the identity database (only when
+ * `identityDbName` was given) and the shared client. */
+export type OnConnectContext = { db: Db; identityDb?: Db; client: MongoClient };
+
 /** createMongo's options. */
 export type MongoOptions = {
   /** The database every call uses, like "packs" or "pools". */
   dbName: string;
+  /** The hub's identity database, like "identity"; on the same client as dbName. Apps that
+   * leave this unset stay single-DB, and getIdentityDb() throws for them. */
+  identityDbName?: string;
   /** The globalThis key the state lives under, like "__poolsMongo"; one per app. */
   globalKey: string;
   /** Reads MONGODB_URI (on first use, not at import). */
@@ -35,7 +49,7 @@ export type MongoOptions = {
   /** How long to look for a server (default DEFAULT_SERVER_SELECTION_TIMEOUT_MS). */
   serverSelectionTimeoutMS?: number;
   /** Runs once after the first successful connect; a throw fails that connect. */
-  onConnect?: (db: Db, client: MongoClient) => Promise<void>;
+  onConnect?: (ctx: OnConnectContext) => Promise<void>;
 };
 
 /** What createMongo returns. */
@@ -44,6 +58,9 @@ export type Mongo = {
   getMongoClient: () => MongoClient;
   /** The database on the shared client. */
   getDb: () => Db;
+  /** The identity database on the same client. Throws when identityDbName wasn't given: a
+   * single-DB app has no identity database to read. */
+  getIdentityDb: () => Db;
   /** The Mongoose connection models register on (usable after connectDb). */
   getModelConnection: () => Connection;
   /** Connects once, attaches Mongoose and runs onConnect; retried after a failure. */
@@ -63,11 +80,14 @@ type MongoState = {
 
 /**
  * @function createMongo
- * @param options {MongoOptions} the database, the global key, the URI and the start-up work
- * @returns {Mongo} getMongoClient, getDb, getModelConnection, connectDb, connectedDb, closeDb
+ * @param options {MongoOptions} the database, the optional identity database, the global key,
+ *        the URI and the start-up work
+ * @returns {Mongo} getMongoClient, getDb, getIdentityDb, getModelConnection, connectDb,
+ *          connectedDb, closeDb
  */
 export const createMongo = ({
   dbName,
+  identityDbName,
   globalKey,
   uri,
   maxPoolSize = DEFAULT_MAX_POOL_SIZE,
@@ -91,11 +111,22 @@ export const createMongo = ({
 
   const getDb = (): Db => state().client.db(dbName);
 
+  const getIdentityDb = (): Db => {
+    if (!identityDbName) {
+      throw new Error(`createMongo: ${globalKey} has no identityDbName; this app is single-DB`);
+    }
+    return state().client.db(identityDbName);
+  };
+
   const connectDb = async (): Promise<void> => {
     const current = state();
     current.ready ??= current.client.connect().then(async () => {
       if (current.base.readyState === 0) current.base.setClient(current.client);
-      await onConnect?.(current.client.db(dbName), current.client);
+      await onConnect?.({
+        db: current.client.db(dbName),
+        ...(identityDbName ? { identityDb: current.client.db(identityDbName) } : {}),
+        client: current.client,
+      });
     });
     try {
       await current.ready;
@@ -108,6 +139,7 @@ export const createMongo = ({
   return {
     getMongoClient: () => state().client,
     getDb,
+    getIdentityDb,
     getModelConnection: () => state().models,
     connectDb,
     connectedDb: async () => {

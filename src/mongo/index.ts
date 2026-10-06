@@ -14,6 +14,7 @@ export {
   DEFAULT_SERVER_SELECTION_TIMEOUT_MS,
   type Mongo,
   type MongoOptions,
+  type OnConnectContext,
 } from "./client.js";
 export { defineCollections } from "./collections.js";
 export { DUPLICATE_KEY, isDuplicateKeyError } from "./duplicate.js";
