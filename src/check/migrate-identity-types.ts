@@ -107,8 +107,8 @@ export const copyByUserId = async (
       const { _id, userId, ...fields } = doc;
       if (write)
         await identityDb
-        .collection(collection)
-        .insertOne({ ...fields, ...extra(app), userId: new ObjectId(newUserId) });
+          .collection(collection)
+          .insertOne({ ...fields, ...extra(app), userId: new ObjectId(newUserId) });
       copied += 1;
     }
   }

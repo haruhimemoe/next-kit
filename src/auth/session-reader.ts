@@ -202,7 +202,8 @@ export const createSessionReader = ({
       .findOne({ _id: session.userId } as Filter<UserDoc>);
     if (!user) return null;
 
-    if (now() - session.updatedAt.getTime() > updateAgeSeconds * 1000) pingHub(`${found.name}=${raw}`);
+    if (now() - session.updatedAt.getTime() > updateAgeSeconds * 1000)
+      pingHub(`${found.name}=${raw}`);
 
     return {
       user: {
