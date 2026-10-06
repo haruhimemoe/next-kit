@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-05
+
+### Changed
+- **Breaking.** `next-kit check`'s legal standard requires all five pages of the legal convention: `content/legal/{terms,privacy,your-privacy-rights,copyright,disclaimers}.mdx` (was terms and privacy only).
+
 ## [0.9.0] - 2026-10-05
 
 ### Added
@@ -104,7 +109,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `@haruhimemoe/next-kit/auth-react`: `createSignedInMarker`, `createAccountStore`, `useAccount`, `createAccount`, `RestoreSignedIn` and `osuSignIn`.
 - `@haruhimemoe/next-kit/testing`: `startMemoryMongo`, `setupTestDb`, `setupMsw` and the fake osu! app env.
 
-[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.8.0...HEAD
+[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/haruhimemoe/next-kit/compare/v0.9.0...v0.10.0
+[0.9.0]: https://github.com/haruhimemoe/next-kit/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/haruhimemoe/next-kit/compare/v0.7.0...v0.8.0
 [0.6.2]: https://github.com/haruhimemoe/next-kit/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/haruhimemoe/next-kit/compare/v0.6.0...v0.6.1

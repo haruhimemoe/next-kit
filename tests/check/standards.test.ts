@@ -34,7 +34,13 @@ const API_ROUTES = [
   "api/v1/openapi.json/route.ts",
   "api/me/api-key/route.ts",
 ];
-const LEGAL_CONTENT = ["legal/terms.mdx", "legal/privacy.mdx"];
+const LEGAL_CONTENT = [
+  "legal/terms.mdx",
+  "legal/privacy.mdx",
+  "legal/your-privacy-rights.mdx",
+  "legal/copyright.mdx",
+  "legal/disclaimers.mdx",
+];
 const API_CONTENT = ["docs/api.mdx"];
 const GUIDES_CONTENT = ["guides/make-a-pack.mdx"];
 
@@ -93,7 +99,7 @@ describe("checkStandards", () => {
 
   it("names a missing legal content file with the content/ prefix", () => {
     const app = [...CRAWL, ...BRAND, ...LEGAL_ROUTES];
-    const content = ["legal/terms.mdx"];
+    const content = LEGAL_CONTENT.filter((file) => file !== "legal/privacy.mdx");
     expect(byId(app, content).legal?.missing).toEqual(["content/legal/privacy.mdx"]);
   });
 

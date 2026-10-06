@@ -228,7 +228,7 @@ Every app is checked against:
 
 - **crawl** (always): `robots.ts`, `sitemap.ts`, `llms.txt/route.ts`, `llms-full.txt/route.ts`, and `.well-known/security.txt/route.ts` (each also accepted as a route handler, like `robots.txt/route.ts`).
 - **brand** (always): `brand/page.tsx`.
-- **legal** (always): `legal/page.tsx`, `legal/[x]/page.tsx`, `legal/[x]/md/route.ts` (any dynamic segment name), and `content/legal/terms.mdx` plus `content/legal/privacy.mdx`.
+- **legal** (always): `legal/page.tsx`, `legal/[x]/page.tsx`, `legal/[x]/md/route.ts` (any dynamic segment name), and the five legal convention pages: `content/legal/{terms,privacy,your-privacy-rights,copyright,disclaimers}.mdx`.
 - **docs**, once `src/app/api/v1` exists or any `content/docs` file does: `docs/page.tsx`, `docs/[x]/page.tsx`, `docs/[x]/md/route.ts`.
 - **guides**, only once a `content/guides` file exists: the same three files under `guides/`. An app with no guides is never asked for them.
 - **api**, once `src/app/api/v1` exists: `api/v1/me/route.ts`, `api/v1/openapi.json/route.ts`, `api/me/api-key/route.ts`, and `content/docs/api.mdx`.

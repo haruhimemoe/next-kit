@@ -2,15 +2,17 @@
  * @file src/check/standards.ts
  * @desc The routes and content files every haruhime app serves, checked against an app's route
  *       file list (paths under src/app) and content file list (paths under content/). Crawl and
- *       brand are always checked; legal always checks its three routes plus its two content
- *       files; docs joins in once api/v1 exists or a content/docs file does; guides joins in
- *       only once a content/guides file does; the API standard, once api/v1 exists, checks its
+ *       brand are always checked; legal always checks its three routes plus the five pages of
+ *       the legal convention (LEGAL_SLUGS); docs joins in once api/v1 exists or a content/docs
+ *       file does; guides joins in only once a content/guides file does; the API standard, once api/v1 exists, checks its
  *       three routes plus content/docs/api.mdx. Checks files only: the content registry itself
  *       is never parsed.
  * @author David @dvhsh (https://dvh.sh)
  * @created Sat Oct 3, 2026
- * @modified Sun Oct 4, 2026
+ * @modified Mon Oct 5, 2026
  */
+
+import { LEGAL_SLUGS } from "../legal/types.js";
 
 /** One standard's outcome. `missing` entries carry their own prefix (src/app/... or content/...). */
 export type StandardResult = { id: string; label: string; ok: boolean; missing: string[] };
@@ -51,8 +53,7 @@ const sectionRoutes = (section: string): Requirement[] => [
 
 const LEGAL: Requirement[] = [
   ...sectionRoutes("legal"),
-  content("legal/terms.mdx"),
-  content("legal/privacy.mdx"),
+  ...LEGAL_SLUGS.map((slug) => content(`legal/${slug}.mdx`)),
 ];
 const DOCS: Requirement[] = sectionRoutes("docs");
 const GUIDES: Requirement[] = sectionRoutes("guides");

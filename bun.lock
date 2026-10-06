@@ -30,7 +30,7 @@
       },
       "peerDependencies": {
         "@haruhimemoe/osu": "^0.2.0 || ^0.3.0 || ^0.4.0",
-        "@haruhimemoe/ui": "^0.14.0 || ^0.15.0 || ^0.16.0 || ^0.17.0",
+        "@haruhimemoe/ui": "^0.14.0 || ^0.15.0 || ^0.16.0 || ^0.17.0 || ^0.18.0",
         "@haruhimemoe/vcs": "^0.1.0",
         "better-auth": "^1.7.5",
         "mongodb": "^7.6.0",
