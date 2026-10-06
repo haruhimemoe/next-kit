@@ -7,9 +7,14 @@
  *       a missing index must not take sign-in or the site down. createIndex is a no-op when the
  *       index already exists. Moved from pools (src/lib/db-indexes.ts), whose auth indexes got
  *       this treatment; the TTL indexes both apps declared use it too.
+ *
+ *       0.12: buildIdentityIndexes builds the identity database's own indexes (user osuId
+ *       unique, session token unique plus TTL, account provider+id unique). Call it only from
+ *       the hub: a satellite's Atlas user is read-only on identity and an index build would
+ *       fail (or, worse, must never be allowed to succeed) there.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Sep 28, 2026
+ * @modified Tue Oct 6, 2026
  */
 
 import type { Db, Document } from "mongodb";
@@ -112,3 +117,45 @@ export const ensureIndexes = async (db: Db, specs: readonly IndexSpec[]): Promis
   });
   return report;
 };
+
+/** Index names on the identity database's collections. */
+export const IDENTITY_INDEXES = Object.freeze({
+  userOsuId: "identity_user_osuId_unique",
+  sessionToken: "identity_session_token_unique",
+  sessionTtl: "identity_session_expiresAt_ttl",
+  accountKey: "identity_account_providerId_accountId_unique",
+});
+
+/** The identity database's own indexes: one user per osu! id, one session per token plus its
+ * TTL, and one account row per provider link. Pass to ensureIndexes against the hub's
+ * identity database only. */
+export const IDENTITY_INDEX_SPECS: readonly IndexSpec[] = Object.freeze([
+  { collection: "user", key: { osuId: 1 }, name: IDENTITY_INDEXES.userOsuId, unique: true },
+  {
+    collection: "session",
+    key: { token: 1 },
+    name: IDENTITY_INDEXES.sessionToken,
+    unique: true,
+    secret: true,
+  },
+  {
+    collection: "session",
+    key: { expiresAt: 1 },
+    name: IDENTITY_INDEXES.sessionTtl,
+    expireAfterSeconds: 0,
+  },
+  {
+    collection: "account",
+    key: { providerId: 1, accountId: 1 },
+    name: IDENTITY_INDEXES.accountKey,
+    unique: true,
+  },
+]);
+
+/**
+ * @function buildIdentityIndexes
+ * @param identityDb {Db} the hub's identity database (never a satellite's read-only one)
+ * @returns {Promise<IndexReport>} IDENTITY_INDEX_SPECS built, or skipped and logged
+ */
+export const buildIdentityIndexes = (identityDb: Db): Promise<IndexReport> =>
+  ensureIndexes(identityDb, IDENTITY_INDEX_SPECS);

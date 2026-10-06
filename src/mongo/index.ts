@@ -19,7 +19,10 @@ export {
 export { defineCollections } from "./collections.js";
 export { DUPLICATE_KEY, isDuplicateKeyError } from "./duplicate.js";
 export {
+  buildIdentityIndexes,
   ensureIndexes,
+  IDENTITY_INDEX_SPECS,
+  IDENTITY_INDEXES,
   type IndexReport,
   type IndexSpec,
   indexName,
