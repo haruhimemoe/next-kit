@@ -76,7 +76,9 @@ export const runMigrateIdentity = async (
   const from = flagValue(args, "from");
   const to = flagValue(args, "to");
   if (typeof from !== "string" || typeof to !== "string") {
-    log("usage: next-kit migrate-identity --from <app,app,...> --to <identityDb> [--uri <uri>] [--execute] [--drop-old]");
+    log(
+      "usage: next-kit migrate-identity --from <app,app,...> --to <identityDb> [--uri <uri>] [--execute] [--drop-old]",
+    );
     return 1;
   }
   const uri = flagValue(args, "uri");
@@ -87,7 +89,10 @@ export const runMigrateIdentity = async (
   }
   const dryRun = flagValue(args, "execute") !== true;
   const dropOld = flagValue(args, "drop-old") === true;
-  const appIds = from.split(",").map((id) => id.trim()).filter(Boolean);
+  const appIds = from
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
   const client = new MongoClient(mongoUri);
   try {
     await client.connect();
@@ -98,7 +103,9 @@ export const runMigrateIdentity = async (
     log(`  accounts copied: ${report.accountsCopied}, sessions dropped: ${report.sessionsDropped}`);
     log(`  api keys copied: ${report.apiKeysCopied}`);
     if (report.droppedCollections.length > 0) {
-      log(`  dropped: ${report.droppedCollections.map((d) => `${d.app}.${d.collection}`).join(", ")}`);
+      log(
+        `  dropped: ${report.droppedCollections.map((d) => `${d.app}.${d.collection}`).join(", ")}`,
+      );
     }
     if (dryRun) log("  (dry run: nothing was written; pass --execute to apply)");
     return 0;
@@ -124,7 +131,9 @@ if (isMainEntry()) {
     exit(runCheck(rest[0] ?? cwd()));
   } else {
     console.log("usage: next-kit check [dir]");
-    console.log("       next-kit migrate-identity --from <app,app,...> --to <identityDb> [--uri <uri>] [--execute] [--drop-old]");
+    console.log(
+      "       next-kit migrate-identity --from <app,app,...> --to <identityDb> [--uri <uri>] [--execute] [--drop-old]",
+    );
     exit(2);
   }
 }

@@ -80,10 +80,14 @@ describe("createSessionReader", () => {
     const user = await createTestUser(auth, 54);
     const old = new Date(Date.now() - (SESSION_UPDATE_AGE_SECONDS + 3600) * 1000);
     await ageSession(user.id, old);
-    const before = await db().collection("session").findOne({ userId: new ObjectId(user.id) });
+    const before = await db()
+      .collection("session")
+      .findOne({ userId: new ObjectId(user.id) });
     const fetchImpl = vi.fn(async () => new Response(null));
     await reader({ fetchImpl }).getSession(new Headers({ cookie: user.cookie }));
-    const after = await db().collection("session").findOne({ userId: new ObjectId(user.id) });
+    const after = await db()
+      .collection("session")
+      .findOne({ userId: new ObjectId(user.id) });
     expect(after).toEqual(before);
   });
 

@@ -49,7 +49,13 @@ export type SessionReader = {
  * session-reader.ts, which pulls in node:crypto. */
 export type SatelliteSessionReader = {
   getSession: (headers: Headers) => Promise<{
-    user: { id: string; osuId: number; username: string; avatarUrl: string | null; bannedAt?: Date | string | null };
+    user: {
+      id: string;
+      osuId: number;
+      username: string;
+      avatarUrl: string | null;
+      bannedAt?: Date | string | null;
+    };
   } | null>;
 };
 

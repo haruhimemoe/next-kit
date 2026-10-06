@@ -61,9 +61,9 @@ export {
 export {
   DEFAULT_SIGN_IN_PATH,
   MAX_NEXT_LENGTH,
-  safeAbsoluteNext,
   type SafeAbsoluteNextOptions,
   type SafeNextOptions,
+  safeAbsoluteNext,
   safeNextPath,
   signInHref,
 } from "./safe-next.js";

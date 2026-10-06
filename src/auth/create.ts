@@ -144,9 +144,11 @@ export const createOsuAuth = <F extends UserFields = NoFields>({
     },
     onAPIError: { errorURL: new URL(signInPath, baseURL).toString() },
     user: {
-      additionalFields: { ...OSU_USER_FIELDS, ...IDENTITY_USER_FIELDS, ...userFields } as typeof OSU_USER_FIELDS &
-        typeof IDENTITY_USER_FIELDS &
-        F,
+      additionalFields: {
+        ...OSU_USER_FIELDS,
+        ...IDENTITY_USER_FIELDS,
+        ...userFields,
+      } as typeof OSU_USER_FIELDS & typeof IDENTITY_USER_FIELDS & F,
     },
     databaseHooks: {
       user: {

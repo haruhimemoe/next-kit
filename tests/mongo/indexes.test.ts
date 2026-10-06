@@ -161,9 +161,9 @@ describe("buildIdentityIndexes", () => {
       IDENTITY_INDEXES.sessionTtl,
       IDENTITY_INDEXES.accountKey,
     ]);
-    expect(IDENTITY_INDEX_SPECS.find((spec) => spec.collection === "session" && spec.unique)).toMatchObject(
-      { secret: true },
-    );
+    expect(
+      IDENTITY_INDEX_SPECS.find((spec) => spec.collection === "session" && spec.unique),
+    ).toMatchObject({ secret: true });
   });
 });
 

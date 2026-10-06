@@ -68,7 +68,8 @@ export const migrateIdentity = async (
   for (const group of groups.values()) {
     const winner = group.reduce(earliest);
     const identityId = new ObjectId();
-    for (const user of group) idMap[`${user.app}:${user.doc._id.toHexString()}`] = identityId.toHexString();
+    for (const user of group)
+      idMap[`${user.app}:${user.doc._id.toHexString()}`] = identityId.toHexString();
     winners.push({ identityId, winner, group });
   }
 
@@ -129,10 +130,16 @@ export const migrateIdentity = async (
   }
 
   // Copy API keys onto the winner, scopes: ["*"] (0.13 splits real scopes per app).
-  report.apiKeysCopied = await copyByUserId(apps, identityDb, idMap, API_KEYS_COLLECTION, (app) => ({
-    app: app.id,
-    scopes: ["*"],
-  }));
+  report.apiKeysCopied = await copyByUserId(
+    apps,
+    identityDb,
+    idMap,
+    API_KEYS_COLLECTION,
+    (app) => ({
+      app: app.id,
+      scopes: ["*"],
+    }),
+  );
 
   // --drop-old, once every app has cut over: the old per-app auth collections are dead weight.
   if (dropOld) {

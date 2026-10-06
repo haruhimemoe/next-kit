@@ -147,9 +147,7 @@ describe("IDENTITY_USER_FIELDS", () => {
       "discordId",
       "discordUsername",
     ]);
-    expect(Object.values(IDENTITY_USER_FIELDS).every((field) => field.input === false)).toBe(
-      true,
-    );
+    expect(Object.values(IDENTITY_USER_FIELDS).every((field) => field.input === false)).toBe(true);
     expect(IDENTITY_USER_FIELDS.bannedAt.type).toBe("date");
   });
 });

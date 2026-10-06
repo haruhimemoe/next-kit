@@ -13,7 +13,7 @@
 import { type Db, MongoClient, ObjectId } from "mongodb";
 import { afterAll, beforeEach, describe, expect, inject, it } from "vitest";
 import { API_KEYS_COLLECTION } from "../../src/api-keys/store.js";
-import { migrateIdentity, type MigrateAppSpec } from "../../src/check/migrate-identity.js";
+import { type MigrateAppSpec, migrateIdentity } from "../../src/check/migrate-identity.js";
 
 const client = new MongoClient(inject("mongoUri"));
 const appDb = (name: string): Db => client.db(`migrate-${name}`);
@@ -78,10 +78,12 @@ describe("migrateIdentity (--execute)", () => {
       accountId: "2",
     });
 
-    await appDb("bb").collection("session").insertMany([
-      { _id: new ObjectId(), userId: early._id, token: "t1" },
-      { _id: new ObjectId(), userId: early._id, token: "t2" },
-    ]);
+    await appDb("bb")
+      .collection("session")
+      .insertMany([
+        { _id: new ObjectId(), userId: early._id, token: "t1" },
+        { _id: new ObjectId(), userId: early._id, token: "t2" },
+      ]);
 
     await appDb("packs").collection(API_KEYS_COLLECTION).insertOne({
       _id: new ObjectId(),

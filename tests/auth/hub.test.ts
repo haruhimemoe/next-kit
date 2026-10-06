@@ -10,12 +10,16 @@
  */
 
 import { describe, expect, it } from "vitest";
-import {
-  SESSION_EXPIRES_IN_SECONDS,
-  SESSION_UPDATE_AGE_SECONDS,
-} from "../../src/auth/index.js";
+import { SESSION_EXPIRES_IN_SECONDS, SESSION_UPDATE_AGE_SECONDS } from "../../src/auth/index.js";
 import { setupMsw } from "../../src/testing/index.js";
-import { cookiesFrom, makeAuth, MARKER, OSU_HANDLERS, PROFILE, signInWithOsu } from "../helpers/auth.js";
+import {
+  cookiesFrom,
+  MARKER,
+  makeAuth,
+  OSU_HANDLERS,
+  PROFILE,
+  signInWithOsu,
+} from "../helpers/auth.js";
 import { testDatabase } from "../helpers/db.js";
 
 setupMsw(...OSU_HANDLERS);
@@ -24,11 +28,16 @@ const { client, db } = testDatabase("auth-hub");
 const HUB_BASE = "https://haruhime.moe";
 const COOKIE_DOMAIN = ".haruhime.moe";
 
-const hub = makeAuth(db(), client, {}, {
-  baseURL: HUB_BASE,
-  cookieDomain: COOKIE_DOMAIN,
-  trustedOrigins: ["https://pools.haruhime.moe", "https://packs.haruhime.moe"],
-});
+const hub = makeAuth(
+  db(),
+  client,
+  {},
+  {
+    baseURL: HUB_BASE,
+    cookieDomain: COOKIE_DOMAIN,
+    trustedOrigins: ["https://pools.haruhime.moe", "https://packs.haruhime.moe"],
+  },
+);
 
 describe("createOsuAuth with cookieDomain", () => {
   it("puts the session cookie on the parent domain, Secure", async () => {
@@ -56,7 +65,9 @@ describe("createOsuAuth with cookieDomain", () => {
 
   it("puts the signed-in marker on the parent domain", async () => {
     const callback = await signInWithOsu(hub, PROFILE(42), HUB_BASE);
-    const marker = callback.headers.getSetCookie().find((cookie) => cookie.startsWith(`${MARKER}=`));
+    const marker = callback.headers
+      .getSetCookie()
+      .find((cookie) => cookie.startsWith(`${MARKER}=`));
     expect(marker).toMatch(new RegExp(`Domain=${COOKIE_DOMAIN.replace(".", "\\.")}`, "i"));
   });
 
@@ -66,7 +77,9 @@ describe("createOsuAuth with cookieDomain", () => {
     const callback = await signInWithOsu(hub, PROFILE(43), HUB_BASE);
     const headers = new Headers({ cookie: cookiesFrom(callback) });
     const session = await hub.api.getSession({ headers });
-    const expiresAt = new Date((session as { session: { expiresAt: Date | string } }).session.expiresAt);
+    const expiresAt = new Date(
+      (session as { session: { expiresAt: Date | string } }).session.expiresAt,
+    );
     const days = (expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
     expect(days).toBeGreaterThan(29);
     expect(days).toBeLessThanOrEqual(30);

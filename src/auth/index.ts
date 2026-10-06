@@ -20,13 +20,6 @@ export {
 } from "./create.js";
 export { AUTH_INDEX_SPECS, AUTH_INDEXES } from "./indexes.js";
 export {
-  createSessionReader,
-  DEFAULT_SESSION_COOKIE_NAME,
-  type ReadSession,
-  type SessionReader as SessionReaderInstance,
-  type SessionReaderOptions,
-} from "./session-reader.js";
-export {
   IDENTITY_USER_FIELDS,
   OSU_PROVIDER_ID,
   OSU_USER_FIELDS,
@@ -47,3 +40,10 @@ export {
   type SessionSource,
   toSessionUser,
 } from "./session.js";
+export {
+  createSessionReader,
+  DEFAULT_SESSION_COOKIE_NAME,
+  type ReadSession,
+  type SessionReader as SessionReaderInstance,
+  type SessionReaderOptions,
+} from "./session-reader.js";

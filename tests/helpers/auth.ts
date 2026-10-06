@@ -119,7 +119,11 @@ export const signInWithOsu = async (
       "sign-in/social",
       "",
       "POST",
-      { provider: OSU_PROVIDER_ID, callbackURL: "/admin", errorCallbackURL: "/signin?next=%2Fadmin" },
+      {
+        provider: OSU_PROVIDER_ID,
+        callbackURL: "/admin",
+        errorCallbackURL: "/signin?next=%2Fadmin",
+      },
       base,
     ),
   );
