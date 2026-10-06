@@ -7,7 +7,7 @@
  *       nothing at runtime, and no source file passes 200 lines.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Sun Oct 4, 2026
+ * @modified Mon Oct 5, 2026
  */
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -325,6 +325,7 @@ it("exports the documented legal API", () => {
       "Processors",
       "YourRights",
       "legalEntries",
+      "legalMarkdownTransform",
     ]
   `);
 });

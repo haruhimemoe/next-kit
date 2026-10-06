@@ -3,13 +3,41 @@
  * @desc The seven legal blocks: plain server-safe React (no hooks) an app drops into its own
  *       legal MDX pages, rendered from a `LegalSite` config instead of hand-written boilerplate.
  *       Semantic HTML only (section, h2, p, ul, a), so it inherits the app's MDX prose styling.
- *       No `@haruhimemoe/ui` dependency: these are plain text blocks, not UI components.
+ *       No `@haruhimemoe/ui` dependency: these are plain text blocks, not UI components. The
+ *       sentences and list items come from ./copy.js, shared with markdown.ts's
+ *       `legalMarkdownTransform` so the two outputs can't drift apart.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Oct 5, 2026
  * @modified Mon Oct 5, 2026
  */
 
 import type { ReactElement } from "react";
+import {
+  CCPA_HEADING,
+  CCPA_RIGHTS,
+  CHANGES_HEADING,
+  CONTACT_HEADING,
+  COOKIES_HEADING,
+  COUNTER_NOTICE_HEADING,
+  COUNTER_NOTICE_ITEMS_BEFORE_JURISDICTION,
+  COUNTER_NOTICE_SIGNATURE,
+  changesParagraph,
+  contactIntro,
+  counterNoticeJurisdiction,
+  DATA_HEADING,
+  DMCA_AGENT_INTRO,
+  DMCA_HEADING,
+  GDPR_HEADING,
+  GDPR_RIGHTS,
+  LIABILITY_HEADING,
+  liabilityParagraph,
+  PROCESSORS_HEADING,
+  RIGHTS_CLOSING_INTRO,
+  TAKEDOWN_HEADING,
+  TAKEDOWN_ITEMS,
+  WARRANTY_HEADING,
+  warrantyParagraph,
+} from "./copy.js";
 import type { LegalSite } from "./types.js";
 
 /** Every block's props: the site config it renders from. */
@@ -25,9 +53,9 @@ export type ChangesProps = LegalBlockProps & { date?: string | undefined };
  */
 export const LegalContact = ({ site }: LegalBlockProps): ReactElement => (
   <section>
-    <h2>Contact</h2>
+    <h2>{CONTACT_HEADING}</h2>
     <p>
-      {site.operator} runs {site.siteName}. For anything on this page, write to{" "}
+      {contactIntro(site)}
       <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>.
     </p>
   </section>
@@ -40,7 +68,7 @@ export const LegalContact = ({ site }: LegalBlockProps): ReactElement => (
  */
 export const DataWeKeep = ({ site }: LegalBlockProps): ReactElement => (
   <section>
-    <h2>What we store</h2>
+    <h2>{DATA_HEADING}</h2>
     <ul>
       {site.stores.map((store) => (
         <li key={store.what}>
@@ -50,7 +78,7 @@ export const DataWeKeep = ({ site }: LegalBlockProps): ReactElement => (
     </ul>
     {site.cookies.length > 0 && (
       <>
-        <h3>Cookies</h3>
+        <h3>{COOKIES_HEADING}</h3>
         <ul>
           {site.cookies.map((cookie) => (
             <li key={cookie}>{cookie}</li>
@@ -68,7 +96,7 @@ export const DataWeKeep = ({ site }: LegalBlockProps): ReactElement => (
  */
 export const Processors = ({ site }: LegalBlockProps): ReactElement => (
   <section>
-    <h2>Service providers</h2>
+    <h2>{PROCESSORS_HEADING}</h2>
     <ul>
       {site.processors.map((processor) => (
         <li key={processor.name}>
@@ -89,43 +117,24 @@ export const Processors = ({ site }: LegalBlockProps): ReactElement => (
  */
 export const YourRights = ({ site }: LegalBlockProps): ReactElement => (
   <section>
-    <h2>Your rights under the GDPR</h2>
+    <h2>{GDPR_HEADING}</h2>
     <ul>
-      <li>
-        <strong>Access and portability.</strong> Get a copy of your data in a machine-readable file.
-      </li>
-      <li>
-        <strong>Rectification.</strong> Have wrong data corrected.
-      </li>
-      <li>
-        <strong>Erasure.</strong> Have your data deleted.
-      </li>
-      <li>
-        <strong>Restriction.</strong> Ask us to pause using your data while a question about it is
-        sorted out.
-      </li>
-      <li>
-        <strong>Objection.</strong> Object to anything we do on the basis of legitimate interest.
-      </li>
-      <li>
-        <strong>Complaint.</strong> Complain to your data protection supervisory authority.
-      </li>
+      {GDPR_RIGHTS.map((right) => (
+        <li key={right.term}>
+          <strong>{right.term}</strong> {right.desc}
+        </li>
+      ))}
     </ul>
-    <h2>Your rights under the CCPA</h2>
+    <h2>{CCPA_HEADING}</h2>
     <ul>
-      <li>
-        <strong>Know, delete and correct.</strong> Ask what we hold about you, ask us to delete it,
-        and ask us to correct it.
-      </li>
-      <li>
-        <strong>Selling and sharing.</strong> We don't sell or share personal information.
-      </li>
-      <li>
-        <strong>Opting out.</strong> We honor Global Privacy Control signals.
-      </li>
+      {CCPA_RIGHTS.map((right) => (
+        <li key={right.term}>
+          <strong>{right.term}</strong> {right.desc}
+        </li>
+      ))}
     </ul>
     <p>
-      To use any of these rights, email{" "}
+      {RIGHTS_CLOSING_INTRO}
       <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>.
     </p>
   </section>
@@ -138,28 +147,25 @@ export const YourRights = ({ site }: LegalBlockProps): ReactElement => (
  */
 export const DmcaNotice = ({ site }: LegalBlockProps): ReactElement => (
   <section>
-    <h2>Copyright and DMCA</h2>
+    <h2>{DMCA_HEADING}</h2>
     {site.hosting ? <p>{site.hosting}</p> : null}
     <p>
-      Our designated agent for copyright notices is{" "}
+      {DMCA_AGENT_INTRO}
       <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>.
     </p>
-    <h3>A takedown notice should include</h3>
+    <h3>{TAKEDOWN_HEADING}</h3>
     <ol>
-      <li>your contact information;</li>
-      <li>the copyrighted work you believe is infringed;</li>
-      <li>the URL or page the material appears on;</li>
-      <li>a good-faith statement that the use is not authorized;</li>
-      <li>a sworn statement that you're the rights holder, or authorized to act for them;</li>
-      <li>your physical or electronic signature.</li>
+      {TAKEDOWN_ITEMS.map((item) => (
+        <li key={item}>{item}</li>
+      ))}
     </ol>
-    <h3>A counter-notice should include</h3>
+    <h3>{COUNTER_NOTICE_HEADING}</h3>
     <ol>
-      <li>your contact information;</li>
-      <li>the material removed and where it appeared;</li>
-      <li>a sworn, good-faith statement that it was removed by mistake or misidentification;</li>
-      <li>your consent to the jurisdiction of your local courts, or {site.operator}'s;</li>
-      <li>your physical or electronic signature.</li>
+      {COUNTER_NOTICE_ITEMS_BEFORE_JURISDICTION.map((item) => (
+        <li key={item}>{item}</li>
+      ))}
+      <li>{counterNoticeJurisdiction(site)}</li>
+      <li>{COUNTER_NOTICE_SIGNATURE}</li>
     </ol>
   </section>
 );
@@ -171,18 +177,10 @@ export const DmcaNotice = ({ site }: LegalBlockProps): ReactElement => (
  */
 export const NoWarranty = ({ site }: LegalBlockProps): ReactElement => (
   <section>
-    <h2>Disclaimer of warranties</h2>
-    <p>
-      {site.siteName} is provided "as is" and "as available", without warranties of any kind,
-      express or implied, including merchantability, fitness for a particular purpose and
-      non-infringement.
-    </p>
-    <h2>Limitation of liability</h2>
-    <p>
-      To the fullest extent the law allows, {site.operator} is not liable for any indirect,
-      incidental, special, consequential or punitive damages, or for any loss of data or accounts,
-      arising from your use of {site.siteName}.
-    </p>
+    <h2>{WARRANTY_HEADING}</h2>
+    <p>{warrantyParagraph(site)}</p>
+    <h2>{LIABILITY_HEADING}</h2>
+    <p>{liabilityParagraph(site)}</p>
   </section>
 );
 
@@ -193,7 +191,7 @@ export const NoWarranty = ({ site }: LegalBlockProps): ReactElement => (
  */
 export const Changes = ({ site, date }: ChangesProps): ReactElement => (
   <section>
-    <h2>Changes</h2>
-    <p>We may update this page. It was last updated on {date ?? site.effectiveDate}.</p>
+    <h2>{CHANGES_HEADING}</h2>
+    <p>{changesParagraph(date ?? site.effectiveDate)}</p>
   </section>
 );

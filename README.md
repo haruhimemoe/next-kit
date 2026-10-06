@@ -13,7 +13,7 @@ The Next.js server plumbing the haruhime.moe tools share. [packs.haruhime.moe](h
 - **`/testing`:** Vitest helpers: one in-memory MongoDB per run, an msw server that refuses unhandled requests, and a fake env.
 - **`/api-keys`:** the shared key format (an app prefix like `hpk_` plus 32 random bytes), a key store over `api_keys`, and the `/api/v1` guard with the standard limits.
 - **`/docs`:** a content registry for an app's docs, guides and legal pages: sections, entries, app-made extra entries (like bb's tag pages), the path helpers a dynamic route needs, and `mdxToMarkdown` to turn bb-flavored MDX into plain Markdown. No runtime imports. **`/docs/files`:** reads the markdown files a registry's entries point at and reports drift between the registry and disk (node:fs).
-- **`/legal`:** the five-page legal convention (terms, privacy, your-privacy-rights, copyright, disclaimers). A `LegalSite` config, seven plain server-safe blocks (`LegalContact`, `DataWeKeep`, `Processors`, `YourRights`, `DmcaNotice`, `NoWarranty`, `Changes`) an app drops into its own legal MDX, and `legalEntries` for the app's content registry.
+- **`/legal`:** the five-page legal convention (terms, privacy, your-privacy-rights, copyright, disclaimers). A `LegalSite` config, seven plain server-safe blocks (`LegalContact`, `DataWeKeep`, `Processors`, `YourRights`, `DmcaNotice`, `NoWarranty`, `Changes`) an app drops into its own legal MDX, `legalEntries` for the app's content registry, and `legalMarkdownTransform` so those blocks survive `mdxToMarkdown`'s `.md` mirrors and llms-full.txt instead of being dropped as unknown JSX.
 - **`/vcs`:** document history in MongoDB on top of `@haruhimemoe/vcs`: one line of revisions per document, saves merged onto whatever landed since their base, revert, diffs, and autosave pruning.
 
 Every name, path, limit and message comes from the caller. There is no root entry point; import a subpath.
@@ -404,6 +404,7 @@ No runtime imports.
 | `LegalDataStore`, `LegalProcessor` | One kind of data kept (`what`, `why`), and one third party that processes it (`name`, `purpose`, `link?`). |
 | `LegalContact`, `DataWeKeep`, `Processors`, `YourRights`, `DmcaNotice`, `NoWarranty`, `Changes` | The seven blocks. Each takes `{ site: LegalSite }` and renders plain semantic HTML (no `@haruhimemoe/ui`), so it inherits the app's MDX prose styling. `DataWeKeep` skips the cookies list when `site.cookies` is empty. `Processors` links a processor that has a `link`, and plain-texts one that doesn't. `DmcaNotice` prints `site.hosting` only when set. `Changes` also takes an optional `date` for a page updated on its own day. |
 | `legalEntries(site, pages?)` | The five `ContentEntry` records (`docs`'s registry shape) for the legal convention, with the default title and description (`site.siteName` filled in) and `lastUpdated` set to `site.effectiveDate`. `pages` overrides any field per slug; everything else keeps the default. |
+| `legalMarkdownTransform(site)` | A `transforms` entry for `mdxToMarkdown` (see `docs`): replaces each self-closing legal block tag (`<LegalContact />`, ..., `<Changes />` or `<Changes date="YYYY-MM-DD" />`) with Markdown carrying the same words as its React block, so an app's `.md` mirrors and llms-full.txt don't silently lose the legal text. |
 
 ### vcs
 

@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-05
+
+### Added
+- `legalMarkdownTransform(site)` in `legal`: a `mdxToMarkdown` `transforms` entry that turns each self-closing legal block tag (`<LegalContact />`, `<DataWeKeep />`, `<Processors />`, `<YourRights />`, `<DmcaNotice />`, `<NoWarranty />`, `<Changes />` and `<Changes date="YYYY-MM-DD" />`) into Markdown carrying the same words as its React block. Without it, an app that drops the legal blocks straight into its `content/legal/*.mdx` loses that text from its `.md` mirrors and llms-full.txt, since `mdxToMarkdown` strips unknown capitalized JSX. The seven blocks' sentences and list items now live in a new `legal/copy.ts`, shared by `blocks.tsx` and `legalMarkdownTransform` so the two outputs can't drift apart; `blocks.tsx`'s rendered output is unchanged.
+
 ## [0.10.0] - 2026-10-05
 
 ### Changed
