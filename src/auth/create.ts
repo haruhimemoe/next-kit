@@ -10,14 +10,10 @@
  *       hooks guard user, account and session creation. Moved from pools (src/lib/auth.ts);
  *       packs lacked accountLinking and onAPIError.
  *
- *       0.12: the hub passes cookieDomain (".haruhime.moe") to put every better-auth cookie,
- *       including OAuth state and PKCE, on the parent domain (better-auth's
- *       advanced.crossSubDomainCookies). That's acceptable only because every OAuth flow starts
- *       and ends on the hub; satellites never redirect through OAuth and never pass
- *       cookieDomain. trustedOrigins is passed straight through to better-auth, for the
- *       satellite origins the hub's sign-in and callback may redirect back to. The session is
- *       now 30 days with a 1-day updateAge (createSessionReader pings the hub to refresh it for
- *       satellite-only visitors).
+ *       0.12: cookieDomain (hub only, ".haruhime.moe") puts every better-auth cookie, including
+ *       OAuth state and PKCE, on the parent domain; safe only because OAuth starts and ends on
+ *       the hub. trustedOrigins passes straight through. Sessions are now 30 days, 1-day
+ *       updateAge (createSessionReader pings the hub to refresh satellite-only visitors).
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
  * @modified Tue Oct 6, 2026
@@ -76,14 +72,13 @@ export type OsuAuthOptions<F extends UserFields = NoFields> = {
   /** The app's database, and the client it's on (for the adapter). */
   db: Db;
   client: MongoClient;
-  /** The signed-in marker cookie's name, like "pools-signed-in" (0.11 apps) or
-   * SHARED_MARKER_COOKIE (the hub, 0.12). */
+  /** The marker cookie's name: "pools-signed-in" (0.11 apps) or SHARED_MARKER_COOKIE (hub). */
   markerCookie: string;
-  /** The hub only: puts every better-auth cookie (session, OAuth state, PKCE) on this parent
-   * domain, like ".haruhime.moe". Leave unset for a single-DB app's own cookies. */
+  /** Hub only: puts every better-auth cookie (session, OAuth state, PKCE) on this parent
+   * domain, like ".haruhime.moe". Unset for a single-DB app's own cookies. */
   cookieDomain?: string;
-  /** The satellite origins the hub's sign-in and OAuth callback may redirect back to. Passed
-   * straight through to better-auth's trustedOrigins. */
+  /** Satellite origins the hub's sign-in/callback may redirect back to (better-auth's
+   * trustedOrigins). */
   trustedOrigins?: string[];
   /** Where errors with no page to return to land (default /signin). */
   signInPath?: string;
@@ -137,10 +132,7 @@ export const createOsuAuth = <F extends UserFields = NoFields>({
     // These fields must accept input: better-auth 1.7 drops `input: false` fields from the OAuth
     // profile too. So no client may call /update-user: identity only ever comes from osu!.
     disabledPaths: ["/update-user"],
-    session: {
-      expiresIn: SESSION_EXPIRES_IN_SECONDS,
-      updateAge: SESSION_UPDATE_AGE_SECONDS,
-    },
+    session: { expiresIn: SESSION_EXPIRES_IN_SECONDS, updateAge: SESSION_UPDATE_AGE_SECONDS },
     advanced: {
       crossSubDomainCookies: cookieDomain
         ? { enabled: true as const, domain: cookieDomain }

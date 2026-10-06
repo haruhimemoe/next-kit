@@ -2,16 +2,15 @@
  * @file src/auth/session-reader.ts
  * @desc createSessionReader: a satellite's read of the hub's identity session, with no
  *       `betterAuth()` instance and no database writes. better-auth's own `/get-session` writes
- *       on refresh once `updateAge` passes (`better-auth/dist/api/routes/session.mjs:198-209`),
- *       which a read-only satellite can't do (and shouldn't: the hub owns every write to
- *       `identity`). So this verifies the signed `better-auth.session_token` cookie itself
- *       (HMAC-SHA256 over the token, base64, the same `${token}.${signature}` shape
- *       `better-auth/crypto`'s makeSignature produces) with node:crypto and a constant-time
- *       compare, then reads `identity.session` and `identity.user` directly. When the session
- *       is past `updateAge`, it fires a request at the hub's own `/api/auth/get-session`
- *       (forwarding the cookie) to extend it there, fire-and-forget: the caller's response
- *       never waits on it, and a failed ping just means the session ages out 30 days from its
- *       last real refresh instead of being renewed. `fetchImpl` is injectable for tests.
+ *       on refresh once `updateAge` passes, which a read-only satellite can't do (and shouldn't:
+ *       the hub owns every write to `identity`). So this verifies the signed
+ *       `better-auth.session_token` cookie itself (HMAC-SHA256 over the token, base64, the same
+ *       `${token}.${signature}` shape `better-auth/crypto`'s makeSignature produces) with
+ *       node:crypto and a constant-time compare, then reads `identity.session` and
+ *       `identity.user` directly. Past `updateAge`, it fires a request at the hub's own
+ *       `/api/auth/get-session` (forwarding the cookie) to extend it there, fire-and-forget: a
+ *       failed ping just means the session ages out from its last real refresh instead of
+ *       being renewed. `fetchImpl` is injectable for tests.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
  * @modified Tue Oct 6, 2026
@@ -64,11 +63,11 @@ export type SessionReaderOptions = {
   secret: string;
   /** The hub's own origin, like "https://haruhime.moe"; the refresh ping's target. */
   hubUrl: string;
-  /** better-auth's cookie name before any secure prefix (default DEFAULT_SESSION_COOKIE_NAME).
-   * A `__Secure-` or `__Host-` prefixed cookie under the same base name is read too. */
+  /** better-auth's cookie name before any secure prefix (default DEFAULT_SESSION_COOKIE_NAME);
+   * a `__Secure-`/`__Host-` prefixed cookie under the same base name is read too. */
   cookieName?: string;
   /** How old a session can get before a read pings the hub to refresh it (default
-   * SESSION_UPDATE_AGE_SECONDS, matching the hub's own session.updateAge). */
+   * SESSION_UPDATE_AGE_SECONDS). */
   updateAgeSeconds?: number;
   /** fetch, injectable so tests can assert the ping without a network call. */
   fetchImpl?: typeof fetch;
@@ -76,14 +75,10 @@ export type SessionReaderOptions = {
   now?: () => number;
 };
 
-/** What createSessionReader returns. */
-export type SessionReader = {
-  /** Reads the caller's session with zero database writes. Null for no cookie, a bad
-   * signature, an expired session, or a session whose user no longer exists. A banned user is
-   * still returned (with bannedAt set): refusing them is requireSession's job, not the
-   * reader's. */
-  getSession: (headers: Headers) => Promise<ReadSession | null>;
-};
+/** What createSessionReader returns. getSession reads with zero database writes: null for no
+ * cookie, a bad signature, an expired session, or a session whose user no longer exists. A
+ * banned user is still returned (bannedAt set): refusing them is requireSession's job. */
+export type SessionReader = { getSession: (headers: Headers) => Promise<ReadSession | null> };
 
 const parseCookieHeader = (header: string): Map<string, string> => {
   const cookies = new Map<string, string>();

@@ -5,86 +5,44 @@
  *       wins), copies accounts and API keys onto the winner, rewrites `userId` references the
  *       caller lists per app, drops each app's old sessions (everyone signs in again once), and
  *       optionally drops the old per-app auth collections entirely once every app has cut over
- *       (`dropOld`, run separately after satellites switch to createSessionReader). Dry run by
- *       default: nothing is written until the caller passes `dryRun: false`, and the report is
- *       the same shape either way, so a dry run previews exactly what would happen. With about
- *       3 real users across bb/packs/pools, a printed plan is enough; there's no UI.
+ *       (`dropOld`, separately, after satellites switch to createSessionReader). Dry run by
+ *       default: nothing is written until `dryRun: false`, and the report is the same shape
+ *       either way, so a dry run previews exactly what would happen. About 3 real users across
+ *       bb/packs/pools: a printed plan is enough, no UI.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
  * @modified Tue Oct 6, 2026
  */
 
-import type { Db, Document } from "mongodb";
+import type { Db } from "mongodb";
 import { ObjectId } from "mongodb";
 import { API_KEYS_COLLECTION } from "../api-keys/store.js";
+import {
+  type AppUser,
+  copyByUserId,
+  earliest,
+  type MigrateAppSpec,
+  type MigrateIdentityOptions,
+  type MigrateReport,
+  OLD_AUTH_COLLECTIONS,
+  type RawUser,
+} from "./migrate-identity-types.js";
 
-/** The old per-app collections migrate-identity deletes from (sessions, always) or drops
- * entirely (--drop-old, after cutover). */
-export const OLD_AUTH_COLLECTIONS = Object.freeze(["session", "account", "verification"]);
-
-/** A userId reference to rewrite in one of an app's own collections. */
-export type UserIdReference = { collection: string; field: string };
-
-/** One app migrate-identity reads from. */
-export type MigrateAppSpec = {
-  /** The app's id, like "bb", "packs" or "pools" (also the fan-out app id later). */
-  id: string;
-  /** The app's own database (not identity). */
-  db: Db;
-  /** userId references to rewrite in this app's own collections, as `{ collection, field }`
-   * (the app lists its own: migrate-identity never guesses). */
-  references?: readonly UserIdReference[];
-};
-
-/** migrateIdentity's options. */
-export type MigrateIdentityOptions = {
-  /** Preview only; nothing is written (default true). */
-  dryRun?: boolean;
-  /** Also drop each app's old session, account and verification collections entirely, after
-   * every app has cut over to createSessionReader (default false; independent of dryRun: a
-   * dry run with dropOld still only reports what would be dropped). */
-  dropOld?: boolean;
-};
-
-/** One userId reference rewrite's result. */
-export type ReferenceRewrite = { app: string; collection: string; field: string; modified: number };
-
-/** One old collection migrate-identity dropped (or would drop with --drop-old). */
-export type DroppedCollection = { app: string; collection: string };
-
-/** What migrateIdentity did, or would do on a dry run. */
-export type MigrateReport = {
-  dryRun: boolean;
-  dropOld: boolean;
-  /** Every user row seen across every app, before merging. */
-  usersSeen: number;
-  /** Winning identity user rows written (or that would be written). */
-  usersWritten: number;
-  accountsCopied: number;
-  sessionsDropped: number;
-  apiKeysCopied: number;
-  referencesRewritten: ReferenceRewrite[];
-  droppedCollections: DroppedCollection[];
-  /** Every old user id, as `"<appId>:<hex>"`, to the winning identity user id (hex). */
-  idMap: Record<string, string>;
-};
-
-type RawUser = Document & { _id: ObjectId; osuId: number; createdAt?: Date };
-
-type AppUser = { app: string; doc: RawUser };
-
-const earliest = (a: AppUser, b: AppUser): AppUser => {
-  const atA = a.doc.createdAt?.getTime() ?? Number.POSITIVE_INFINITY;
-  const atB = b.doc.createdAt?.getTime() ?? Number.POSITIVE_INFINITY;
-  return atA <= atB ? a : b;
-};
+export {
+  type DroppedCollection,
+  type MigrateAppSpec,
+  type MigrateIdentityOptions,
+  type MigrateReport,
+  OLD_AUTH_COLLECTIONS,
+  type ReferenceRewrite,
+  type UserIdReference,
+} from "./migrate-identity-types.js";
 
 /**
  * @function migrateIdentity
- * @param apps {readonly MigrateAppSpec[]} the apps to merge, each with its own database and
- *        userId references
+ * @param apps {readonly MigrateAppSpec[]} the apps to merge
  * @param identityDb {Db} the hub's identity database (the migration's target)
- * @param options {MigrateIdentityOptions} dryRun (default true) and dropOld (default false)
+ * @param options {MigrateIdentityOptions} dryRun (default true), dropOld (default false)
  * @returns {Promise<MigrateReport>} what happened, or would happen on a dry run
  */
 export const migrateIdentity = async (
@@ -92,14 +50,12 @@ export const migrateIdentity = async (
   identityDb: Db,
   { dryRun = true, dropOld = false }: MigrateIdentityOptions = {},
 ): Promise<MigrateReport> => {
-  // 1. Collect every user row across every app.
+  // Collect every user row, then group by osuId (earliest createdAt wins).
   const allUsers: AppUser[] = [];
   for (const app of apps) {
     const docs = await app.db.collection<RawUser>("user").find().toArray();
     for (const doc of docs) allUsers.push({ app: app.id, doc });
   }
-
-  // 2. Group by osuId, earliest createdAt wins (undated rows lose to any dated one).
   const groups = new Map<number, AppUser[]>();
   for (const user of allUsers) {
     const group = groups.get(user.doc.osuId);
@@ -131,36 +87,26 @@ export const migrateIdentity = async (
 
   if (dryRun) return report;
 
-  // 3. Write the winning identity user rows.
+  // Write the winning identity user rows.
   if (winners.length > 0) {
-    await identityDb.collection("user").insertMany(
-      winners.map(({ identityId, winner }) => {
-        const { _id, ...fields } = winner.doc;
-        return { _id: identityId, ...fields };
-      }),
-    );
+    const rows = winners.map(({ identityId, winner }) => {
+      const { _id, ...fields } = winner.doc;
+      return { _id: identityId, ...fields };
+    });
+    await identityDb.collection("user").insertMany(rows);
   }
 
-  // 4. Copy accounts onto the winner, deduped by providerId+accountId.
-  const seenAccounts = new Set<string>();
-  for (const app of apps) {
-    const accounts = await app.db.collection<Document>("account").find().toArray();
-    for (const account of accounts) {
-      const oldUserId = String(account.userId);
-      const newUserId = idMap[`${app.id}:${oldUserId}`];
-      if (!newUserId) continue;
-      const key = `${account.providerId}:${account.accountId}`;
-      if (seenAccounts.has(key)) continue;
-      seenAccounts.add(key);
-      const { _id, userId, ...fields } = account;
-      await identityDb
-        .collection("account")
-        .insertOne({ ...fields, userId: new ObjectId(newUserId) });
-      report.accountsCopied += 1;
-    }
-  }
+  // Copy accounts onto the winner, deduped by providerId+accountId.
+  report.accountsCopied = await copyByUserId(
+    apps,
+    identityDb,
+    idMap,
+    "account",
+    () => ({}),
+    (doc) => `${doc.providerId}:${doc.accountId}`,
+  );
 
-  // 5. Rewrite each app's own userId references.
+  // Rewrite each app's own userId references.
   for (const app of apps) {
     for (const { collection, field } of app.references ?? []) {
       let modified = 0;
@@ -176,31 +122,19 @@ export const migrateIdentity = async (
     }
   }
 
-  // 6. Drop old sessions: everyone signs in again once, under the shared identity session.
+  // Drop old sessions: everyone signs in again once, under the shared identity session.
   for (const app of apps) {
     const { deletedCount } = await app.db.collection("session").deleteMany({});
     report.sessionsDropped += deletedCount;
   }
 
-  // 7. Copy API keys onto the winner, scopes: ["*"] (0.13 splits real scopes per app).
-  for (const app of apps) {
-    const keys = await app.db.collection<Document>(API_KEYS_COLLECTION).find().toArray();
-    for (const key of keys) {
-      const newUserId = idMap[`${app.id}:${String(key.userId)}`];
-      if (!newUserId) continue;
-      const { _id, userId, ...fields } = key;
-      await identityDb.collection(API_KEYS_COLLECTION).insertOne({
-        ...fields,
-        userId: new ObjectId(newUserId),
-        app: app.id,
-        scopes: ["*"],
-      });
-      report.apiKeysCopied += 1;
-    }
-  }
+  // Copy API keys onto the winner, scopes: ["*"] (0.13 splits real scopes per app).
+  report.apiKeysCopied = await copyByUserId(apps, identityDb, idMap, API_KEYS_COLLECTION, (app) => ({
+    app: app.id,
+    scopes: ["*"],
+  }));
 
-  // 8. --drop-old: once every app has cut over, the old per-app auth collections are dead
-  // weight. Tolerates a collection that doesn't exist (already dropped, or never existed).
+  // --drop-old, once every app has cut over: the old per-app auth collections are dead weight.
   if (dropOld) {
     for (const app of apps) {
       const existing = new Set(

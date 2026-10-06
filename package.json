@@ -78,6 +78,10 @@
       "types": "./dist/vcs/index.d.ts",
       "default": "./dist/vcs/index.js"
     },
+    "./check/migrate-identity": {
+      "types": "./dist/check/migrate-identity.d.ts",
+      "default": "./dist/check/migrate-identity.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

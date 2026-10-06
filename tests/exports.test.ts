@@ -15,6 +15,7 @@ import { expect, it } from "vitest";
 import * as apiKeys from "../src/api-keys/index.js";
 import * as auth from "../src/auth/index.js";
 import * as authReact from "../src/auth-react/index.js";
+import * as migrateIdentity from "../src/check/migrate-identity.js";
 import * as docsFiles from "../src/docs/files/index.js";
 import * as docs from "../src/docs/index.js";
 import * as env from "../src/env/index.js";
@@ -40,6 +41,8 @@ const ENTRIES = [
   "legal",
   "vcs",
 ];
+/** Non-index entry points: exports map to a specific file, not <entry>/index.js. */
+const EXTRA_ENTRIES = { "check/migrate-identity": "check/migrate-identity" };
 
 /** Every bare or node: module a src/ file loads at runtime, following relative imports. */
 const loads = (file: URL, seen = new Set<string>(), found = new Set<string>()) => {
@@ -60,12 +63,22 @@ const loads = (file: URL, seen = new Set<string>(), found = new Set<string>()) =
 
 it("maps every entry point, and only those", () => {
   expect(Object.keys(pkg.exports).sort()).toEqual(
-    [...ENTRIES.map((entry) => `./${entry}`), "./package.json"].sort(),
+    [
+      ...ENTRIES.map((entry) => `./${entry}`),
+      ...Object.keys(EXTRA_ENTRIES).map((entry) => `./${entry}`),
+      "./package.json",
+    ].sort(),
   );
   for (const entry of ENTRIES) {
     expect(pkg.exports[`./${entry}`]).toEqual({
       types: `./dist/${entry}/index.d.ts`,
       default: `./dist/${entry}/index.js`,
+    });
+  }
+  for (const [entry, file] of Object.entries(EXTRA_ENTRIES)) {
+    expect(pkg.exports[`./${entry}`]).toEqual({
+      types: `./dist/${file}.d.ts`,
+      default: `./dist/${file}.js`,
     });
   }
 });
@@ -127,6 +140,7 @@ it("exports the documented server API", () => {
       "refuseCrossSite",
       "refuseWithoutBearer",
       "retryText",
+      "safeAbsoluteNext",
       "safeNextPath",
       "sameSecret",
       "signInHref",
@@ -166,6 +180,9 @@ it("exports the documented mongo API", () => {
       "DEFAULT_MAX_POOL_SIZE",
       "DEFAULT_SERVER_SELECTION_TIMEOUT_MS",
       "DUPLICATE_KEY",
+      "IDENTITY_INDEXES",
+      "IDENTITY_INDEX_SPECS",
+      "buildIdentityIndexes",
       "createMongo",
       "defineCollections",
       "ensureIndexes",
@@ -181,14 +198,31 @@ it("exports the documented auth API", () => {
     [
       "AUTH_INDEXES",
       "AUTH_INDEX_SPECS",
+      "DEFAULT_SESSION_COOKIE_NAME",
+      "IDENTITY_USER_FIELDS",
       "OSU_PROVIDER_ID",
       "OSU_USER_FIELDS",
+      "SESSION_EXPIRES_IN_SECONDS",
+      "SESSION_UPDATE_AGE_SECONDS",
       "createOsuAuth",
+      "createSessionReader",
       "getOsuUser",
+      "getSessionUser",
       "osuProfileToUser",
       "osuProvider",
+      "requireAdmin",
+      "requireSession",
       "toSessionUser",
       "withoutTokens",
+    ]
+  `);
+});
+
+it("exports the documented check/migrate-identity API", () => {
+  expect(Object.keys(migrateIdentity).sort()).toMatchInlineSnapshot(`
+    [
+      "OLD_AUTH_COLLECTIONS",
+      "migrateIdentity",
     ]
   `);
 });
@@ -203,6 +237,7 @@ it("exports the documented auth-react API", () => {
       "OSU_AVATAR_HOSTS",
       "OSU_PROVIDER_ID",
       "RestoreSignedIn",
+      "SHARED_MARKER_COOKIE",
       "SignInWithOsu",
       "SignOutButton",
       "createAccount",

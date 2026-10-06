@@ -64,7 +64,7 @@ export const { getDb, getMongoClient, getModelConnection, connectDb, connectedDb
   dbName: "pools",
   globalKey: "__poolsMongo",
   uri: getDatabaseUri,
-  onConnect: async (db) => {
+  onConnect: async ({ db }) => {
     await ensureIndexes(db, [...AUTH_INDEX_SPECS, counterTtlIndex()]);
   },
 });
@@ -261,6 +261,7 @@ The command prints one `pass` or `FAIL` line per standard, names each missing fi
 | `refuseWithoutBearer(request, { secret, label, notConfigured, failures?, noStore? })` | Machine auth: null for the right `Bearer` secret, else 503 `not_configured`, 401, or 429 when failures are counted. |
 | `sameSecret(given, secret)`, `bearerToken(headers)` | SHA-256 digests compared with `timingSafeEqual`, and the token after `Bearer `. |
 | `safeNextPath(raw, { fallback, signInPath? })`, `signInHref(next, signInPath?)` | A same-site path to go to after sign-in (never the sign-in page), and the link carrying it. |
+| `safeAbsoluteNext(raw, { hosts, fallback })` | The hub's allowlist for a satellite's full-URL `next`: `new URL()` parsed, `https:` only, no userinfo, `hostname` matched exactly (never a suffix) against `hosts`. A satellite may build this itself as a convenience; the hub re-checking `next` on arrival is the authoritative guard. |
 | `buildSecurityTxt({ contactEmail, siteUrl, policyUrl, now, contactUrl? })` | The RFC 9116 body, expiring a year after `now`, with optional `contactUrl` listed before the email. |
 
 ### env
@@ -276,8 +277,9 @@ The command prints one `pass` or `FAIL` line per standard, names each missing fi
 
 | Export | What it does |
 | --- | --- |
-| `createMongo({ dbName, globalKey, uri, maxPoolSize?, serverSelectionTimeoutMS?, onConnect? })` | `getMongoClient`, `getDb`, `getModelConnection`, `connectDb`, `connectedDb`, `closeDb`. 5 connections and a 5 s timeout by default; a failed connect is retried next call. |
+| `createMongo({ dbName, identityDbName?, globalKey, uri, maxPoolSize?, serverSelectionTimeoutMS?, onConnect? })` | `getMongoClient`, `getDb`, `getIdentityDb`, `getModelConnection`, `connectDb`, `connectedDb`, `closeDb`. 5 connections and a 5 s timeout by default; a failed connect is retried next call. `onConnect` takes one `{ db, identityDb?, client }` argument; `identityDb` is only present when `identityDbName` was given. Single-DB by default: leave `identityDbName` unset and `getIdentityDb()` throws instead of silently returning your own database. |
 | `ensureIndexes(db, specs)` | Builds each `IndexSpec` on its own and returns `{ built, skipped }`. A unique index that existing duplicates break is skipped and logged with the duplicate keys (never for `secret: true`). Never throws. |
+| `buildIdentityIndexes(identityDb)` | The hub's own four indexes on `identity`'s collections (user osuId, session token + TTL, account provider+id). Call it from the hub only; a satellite's Atlas user is read-only on `identity`. |
 | `ttlIndex(collection, field, seconds?, name?)`, `indexName(spec)` | A TTL index spec, and the name MongoDB gives an index. |
 | `defineCollections(names)` | Frozen collection-name constants; throws on an invalid or repeated name. |
 | `isDuplicateKeyError(error)`, `DUPLICATE_KEY` | E11000. |
@@ -286,10 +288,14 @@ The command prints one `pass` or `FAIL` line per standard, names each missing fi
 
 | Export | What it does |
 | --- | --- |
-| `createOsuAuth({ clientId, clientSecret, baseURL, secret, db, client, markerCookie, signInPath?, hooks?, userFields? })` | better-auth on MongoDB with osu! genericOAuth (identify + public, PKCE). `/update-user` is off, osu! tokens are never stored, osu! is trusted for account linking, API errors land on `/signin?error=<code>`, and the marker cookie follows the session. |
+| `createOsuAuth({ clientId, clientSecret, baseURL, secret, db, client, markerCookie, cookieDomain?, trustedOrigins?, signInPath?, hooks?, userFields? })` | better-auth on MongoDB with osu! genericOAuth (identify + public, PKCE). `/update-user` is off, osu! tokens are never stored, osu! is trusted for account linking, API errors land on `/signin?error=<code>`, and the marker cookie follows the session. The hub only passes `cookieDomain` (like `.haruhime.moe`) to put every cookie — session, OAuth state, PKCE — on the parent domain, and `trustedOrigins` for the satellites it may redirect back to. Sessions last 30 days with a 1-day `updateAge` (`SESSION_EXPIRES_IN_SECONDS`, `SESSION_UPDATE_AGE_SECONDS`). |
 | `hooks` | `beforeUserCreate`, `beforeAccountCreate` and `beforeSessionCreate` refuse a write by returning false; `afterUserCreate` runs after a new user and never fails the sign-in. |
 | `AUTH_INDEX_SPECS`, `AUTH_INDEXES` | One user per osu! id, one account per osu! link, one session per token, sessions by user, and the session TTL. Pass them to `ensureIndexes`. |
-| `getOsuUser(auth, headers)`, `toSessionUser(session)` | `{ id, osuId, username, avatarUrl }` for the caller, or null. |
+| `getOsuUser(auth, headers)`, `toSessionUser(session)` | `{ id, osuId, username, avatarUrl, bannedAt? }` for the caller, or null. Never refuses a banned user by itself. |
+| `getSessionUser(source, headers)` | The same, over either the hub's better-auth instance or a `createSessionReader` instance. |
+| `requireSession(source, headers)`, `requireAdmin(source, headers, adminOsuIds)` | `getSessionUser`, but null for a banned user too (and, for `requireAdmin`, null when their osu! id isn't in the allowlist). Use these, not `getOsuUser`/`getSessionUser`, wherever a ban must lock someone out. |
+| `createSessionReader({ identityDb, secret, hubUrl, cookieName?, updateAgeSeconds?, fetchImpl?, now? })` | A satellite's read of `identity`'s session, with zero database writes: verifies the signed `better-auth.session_token` cookie itself (HMAC-SHA256, `node:crypto`, constant-time) instead of running `betterAuth()`, since better-auth's own `/get-session` writes on refresh. Past `updateAgeSeconds`, fires an injectable, fire-and-forget ping at the hub's `/api/auth/get-session` to extend the session. |
+| `IDENTITY_USER_FIELDS` | The identity-only user fields (`locale`, `notificationPrefs`, `bannedAt`, `banReason`, `limits`, `discordId`, `discordUsername`), all `input: false`. Merged into every `createOsuAuth` instance's `additionalFields`, single-DB apps included. |
 | `osuProvider`, `osuProfileToUser`, `withoutTokens`, `OSU_PROVIDER_ID`, `OSU_USER_FIELDS` | The pieces `createOsuAuth` is built from. |
 
 ### auth-react
@@ -440,6 +446,58 @@ Notes:
 - A `base` whose id is another document's revision, or whose seq doesn't match, is `missing`. Only an id that no longer exists (pruned) falls back to the nearest earlier revision.
 
 Who may read a history, and the routes around it, stay the app's.
+
+## Identity (0.12)
+
+0.12 is the identity core behind the shared hub login: `haruhime.moe` is the only app that runs osu! sign-in, every other app (`bb`, `packs`, `pools`) reads the hub's session instead of its own. Two modes:
+
+- **Single-DB (0.11 apps, unchanged).** `createMongo({ dbName, ... })` with no `identityDbName`, `createOsuAuth({ ..., markerCookie: "pools-signed-in" })` with no `cookieDomain`, and `getOsuUser`/`getSessionUser`/`requireSession` over that same instance. Nothing here changes for an app that doesn't opt in, apart from the two breaking changes in the Migration section below (the `onConnect` signature and the new identity user fields).
+- **Hub (`haruhime.moe`).**
+  ```ts
+  // the hub's src/lib/db.ts
+  export const { getDb, getIdentityDb, connectDb, ... } = createMongo({
+    dbName: "haruhime",
+    identityDbName: "identity",
+    globalKey: "__hubMongo",
+    uri: getDatabaseUri,
+    onConnect: async ({ identityDb }) => {
+      if (identityDb) await buildIdentityIndexes(identityDb);
+    },
+  });
+
+  // the hub's src/lib/auth.ts
+  export const getAuth = () => createOsuAuth({
+    ...,
+    db: getIdentityDb(), client: getMongoClient(),
+    markerCookie: SHARED_MARKER_COOKIE, // "haruhime-signed-in", from auth-react
+    cookieDomain: ".haruhime.moe",
+    trustedOrigins: ["https://pools.haruhime.moe", "https://packs.haruhime.moe", "https://bb.haruhime.moe"],
+  });
+  ```
+  Sign-in and the OAuth callback only ever run on the hub, so `cookieDomain` putting the state and PKCE cookies on `.haruhime.moe` too is safe. Re-validate a satellite's `?next=` with `safeAbsoluteNext` before redirecting back to it; the hub is the authoritative check even if the satellite built its own `hubSignInUrl`-style link as a convenience.
+- **Satellite (`bb`, `packs`, `pools`, after cutover).** Keep the app's own `createMongo` for its own data, but build a reader instead of `createOsuAuth`:
+  ```ts
+  export const sessionReader = createSessionReader({
+    identityDb: getIdentityDb(), // identityDbName: "identity" on this app's own createMongo too
+    secret: getServerEnv().BETTER_AUTH_SECRET, // shared with the hub
+    hubUrl: "https://haruhime.moe",
+  });
+  // in a route or server page:
+  const user = await requireSession(sessionReader, request.headers);
+  ```
+  The reader makes zero database writes (it's a raw cookie-and-Mongo read, not a `betterAuth()` instance), and a satellite's own Atlas user should be `readWrite` on its own database and `read` only on `identity` — app code isn't the boundary, the DB credential is.
+
+**Local dev.** Production shares a cookie across `*.haruhime.moe` via `cookieDomain: ".haruhime.moe"`, but `localhost` subdomains don't share cookies the same way. Run every app under a `*.localhost` host instead (`hub.localhost:3000`, `pools.localhost:3001`, ...) with `cookieDomain: ".localhost"` on the hub's dev config, or use an `lvh.me`-style public DNS wildcard that resolves to `127.0.0.1`. Either way, leave `cookieDomain` unset on a plain `localhost:3000` setup: a single-origin dev server doesn't need cross-subdomain cookies at all, and better-auth's `baseURL` check for `crossSubDomainCookies` requires an actual domain to scope to.
+
+**Cutover.** Deploy the hub with `identity`, run `next-kit migrate-identity --from bb,packs,pools --to identity` (dry run first, then `--execute`), switch each satellite to `createSessionReader`, then run `--drop-old` once every satellite is confirmed working. `migrateIdentity` also rewrites `userId` references in an app's own collections when given `{ collection, field }` per app — the CLI doesn't expose that (no sane flag syntax for a per-app list), so call `migrateIdentity` directly from a one-off script when an app needs it:
+```ts
+import { migrateIdentity } from "@haruhimemoe/next-kit/check/migrate-identity";
+await migrateIdentity(
+  [{ id: "packs", db: packsDb, references: [{ collection: "download", field: "userId" }] }],
+  identityDb,
+  { dryRun: false },
+);
+```
 
 ## Migration
 
