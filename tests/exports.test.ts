@@ -130,6 +130,7 @@ it("exports the documented server API", () => {
       "createRateLimiter",
       "crossSiteMessage",
       "errorCodeFor",
+      "hubSignInUrl",
       "jsonError",
       "noStore",
       "parseIdList",

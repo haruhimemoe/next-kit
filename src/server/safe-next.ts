@@ -71,14 +71,18 @@ export type SafeAbsoluteNextOptions = {
  * @function safeAbsoluteNext
  * @param raw {string | null | undefined} an untrusted absolute ?next= value
  * @param options {SafeAbsoluteNextOptions} the hostname allowlist and the fallback
- * @returns {string} `raw` unchanged when it parses, is `https:`, carries no userinfo and its
- *          hostname exactly matches one entry of `hosts`; the fallback otherwise
+ * @returns {string} the parsed URL's normalized href when `raw` has no control characters or
+ *          backslashes, parses, is `https:`, carries no userinfo and its hostname exactly matches
+ *          one entry of `hosts`; the fallback otherwise. Never `raw` itself: the URL parser
+ *          strips tabs and newlines, so the string checked and the string redirected to must be
+ *          the same one.
  */
 export const safeAbsoluteNext = (
   raw: string | null | undefined,
   { hosts, fallback }: SafeAbsoluteNextOptions,
 ): string => {
   if (!raw || raw.length > MAX_NEXT_LENGTH) return fallback;
+  if (raw.includes("\\") || hasControlCharacter(raw)) return fallback;
   let url: URL;
   try {
     url = new URL(raw);
@@ -89,7 +93,40 @@ export const safeAbsoluteNext = (
   if (url.username || url.password) return fallback;
   const hostname = url.hostname.toLowerCase();
   if (!hosts.some((host) => host.toLowerCase() === hostname)) return fallback;
-  return raw;
+  return url.href;
+};
+
+/** hubSignInUrl's options. */
+export type HubSignInUrlOptions = {
+  /** The hub's origin, like "https://haruhime.moe". */
+  hubUrl: string;
+  /** The same allowlist the hub validates `next` against (safeAbsoluteNext's `hosts`). */
+  hosts: readonly string[];
+  /** The hub's sign-in page (default DEFAULT_SIGN_IN_PATH). */
+  signInPath?: string;
+};
+
+/**
+ * @function hubSignInUrl
+ * @param next {string} the absolute satellite URL to land on after signing in
+ * @param options {HubSignInUrlOptions} the hub, the host allowlist and the sign-in page
+ * @returns {string} the hub's sign-in URL, like
+ *          https://haruhime.moe/signin?next=https%3A%2F%2Fpools.haruhime.moe%2Fp%2Fabc. An unsafe
+ *          `next` (or one pointing back at the hub's own sign-in page) is dropped, leaving a
+ *          plain sign-in link. A convenience only: the hub re-validates `next` on arrival.
+ */
+export const hubSignInUrl = (
+  next: string,
+  { hubUrl, hosts, signInPath = DEFAULT_SIGN_IN_PATH }: HubSignInUrlOptions,
+): string => {
+  const signIn = new URL(signInPath, hubUrl);
+  const safe = safeAbsoluteNext(next, { hosts, fallback: "" });
+  if (safe) {
+    const target = new URL(safe);
+    const loops = target.origin === signIn.origin && target.pathname === signIn.pathname;
+    if (!loops) signIn.searchParams.set("next", safe);
+  }
+  return signIn.href;
 };
 
 /**

@@ -12,6 +12,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_SIGN_IN_PATH,
+  hubSignInUrl,
   safeAbsoluteNext,
   safeNextPath,
   signInHref,
@@ -70,7 +71,7 @@ describe("safeAbsoluteNext", () => {
 
   it("matches the hostname case-insensitively", () => {
     expect(safeAbsoluteNext("https://HARUHIME.MOE/", { hosts, fallback })).toBe(
-      "https://HARUHIME.MOE/",
+      "https://haruhime.moe/",
     );
     expect(safeAbsoluteNext("https://haruhime.moe/", { hosts: ["HARUHIME.MOE"], fallback })).toBe(
       "https://haruhime.moe/",
@@ -89,9 +90,36 @@ describe("safeAbsoluteNext", () => {
     ["http://haruhime.moe", "http, not https"],
     ["HARUHIME.MOE", "no scheme at all"],
     ["https://new.haruhime.moe/", "an unlisted subdomain"],
+    ["https://haruhime.moe\\@evil.com/", "a backslash"],
+    ["https://haruhime.moe/\n", "a control character"],
     [`https://haruhime.moe/${"a".repeat(600)}`, "longer than MAX_NEXT_LENGTH"],
   ])("replaces %j (%s) with the fallback", (raw: string | null | undefined, _why: string) => {
     expect(safeAbsoluteNext(raw, { hosts, fallback })).toBe(fallback);
+  });
+});
+
+describe("safeAbsoluteNext normalization", () => {
+  const hosts = ["haruhime.moe", "pools.haruhime.moe"];
+  const fallback = "/";
+  it("returns the parsed href, not the raw string", () => {
+    expect(safeAbsoluteNext("https://Pools.haruhime.moe", { hosts, fallback })).toBe(
+      "https://pools.haruhime.moe/",
+    );
+  });
+});
+
+describe("hubSignInUrl", () => {
+  const options = { hubUrl: "https://haruhime.moe", hosts: ["haruhime.moe", "pools.haruhime.moe"] };
+  it("carries a safe absolute next", () => {
+    expect(hubSignInUrl("https://pools.haruhime.moe/p/abc?x=1", options)).toBe(
+      "https://haruhime.moe/signin?next=https%3A%2F%2Fpools.haruhime.moe%2Fp%2Fabc%3Fx%3D1",
+    );
+  });
+  it("drops an unsafe next, or one back at the hub's sign-in page", () => {
+    expect(hubSignInUrl("https://evil.com/", options)).toBe("https://haruhime.moe/signin");
+    expect(hubSignInUrl("https://haruhime.moe/signin?next=x", options)).toBe(
+      "https://haruhime.moe/signin",
+    );
   });
 });
 
