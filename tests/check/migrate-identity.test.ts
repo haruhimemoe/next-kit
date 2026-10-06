@@ -166,8 +166,48 @@ describe("migrateIdentity (--execute)", () => {
   });
 
   it("tolerates a --drop-old run with nothing left to drop", async () => {
+    await identityDb.collection("user").insertOne(userRow(9, "migrated", new Date()));
     const apps: MigrateAppSpec[] = [{ id: "bb", db: appDb("bb") }];
     const report = await migrateIdentity(apps, identityDb, { dryRun: false, dropOld: true });
     expect(report.droppedCollections).toEqual([]);
+  });
+
+  it("previews the same counts on a dry run, and writes nothing", async () => {
+    const { early } = await seed();
+    const apps: MigrateAppSpec[] = [
+      { id: "bb", db: appDb("bb"), references: [{ collection: "pack", field: "ownerId" }] },
+      { id: "packs", db: appDb("packs") },
+    ];
+    const report = await migrateIdentity(apps, identityDb);
+    expect(report).toMatchObject({ accountsCopied: 1, sessionsDropped: 2, apiKeysCopied: 1 });
+    expect(report.referencesRewritten[0]?.modified).toBe(1);
+    expect(await identityDb.collection("account").countDocuments()).toBe(0);
+    expect(await appDb("bb").collection("session").countDocuments()).toBe(2);
+    const pack = await appDb("bb").collection("pack").findOne({});
+    expect(pack?.ownerId).toBe(early._id.toHexString());
+  });
+
+  it("rewrites ObjectId references as ObjectIds", async () => {
+    const { early } = await seed();
+    await appDb("bb").collection("pick").insertOne({ _id: new ObjectId(), by: early._id });
+    const apps: MigrateAppSpec[] = [
+      { id: "bb", db: appDb("bb"), references: [{ collection: "pick", field: "by" }] },
+    ];
+    const report = await migrateIdentity(apps, identityDb, { dryRun: false });
+    const pick = await appDb("bb").collection("pick").findOne({});
+    expect(pick?.by).toBeInstanceOf(ObjectId);
+    expect(pick?.by.toHexString()).toBe(report.idMap[`bb:${early._id.toHexString()}`]);
+  });
+
+  it("refuses to merge twice, and refuses --drop-old before a merge", async () => {
+    await seed();
+    const apps: MigrateAppSpec[] = [{ id: "bb", db: appDb("bb") }];
+    await expect(
+      migrateIdentity(apps, identityDb, { dryRun: false, dropOld: true }),
+    ).rejects.toThrow(/migrate first/);
+    expect(await appDb("bb").listCollections({ name: "account" }).toArray()).toHaveLength(1);
+    await migrateIdentity(apps, identityDb, { dryRun: false });
+    await expect(migrateIdentity(apps, identityDb, { dryRun: false })).rejects.toThrow(/twice/);
+    expect(await identityDb.collection("user").countDocuments()).toBe(1);
   });
 });

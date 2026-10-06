@@ -8,9 +8,9 @@
  *       0.12: `next-kit migrate-identity --from bb,packs,pools --to identity [--uri <uri>]
  *       [--execute] [--drop-old]`, a thin argv/MongoClient wrapper around migrateIdentity.
  *       Dry run by default (the plan prints and nothing is written); `--execute` writes.
- *       `--drop-old` additionally drops each app's old session/account/verification
- *       collections, meant for a separate run after every app has cut over to
- *       createSessionReader. The CLI never rewrites userId references in an app's own
+ *       `--drop-old` is a separate drop-only run (no merge) that drops each app's old
+ *       session/account/verification collections once every app has cut over to
+ *       createSessionReader; it refuses while identity is still empty. The CLI never rewrites userId references in an app's own
  *       collections (that needs each app's own `{ collection, field }` list, which has no
  *       sane flag syntax); call migrateIdentity directly from an app's own script for that.
  * @author David @dvhsh (https://dvh.sh)

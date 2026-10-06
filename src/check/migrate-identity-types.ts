@@ -25,9 +25,10 @@ export type MigrateAppSpec = {
   references?: readonly UserIdReference[];
 };
 
-/** migrateIdentity's options: dryRun previews only (default true); dropOld also drops each
- * app's old session/account/verification collections entirely, meant for after every app has
- * cut over to createSessionReader (default false, independent of dryRun). */
+/** migrateIdentity's options: dryRun previews only (default true); dropOld is a separate,
+ * drop-only run that drops each app's old session/account/verification collections entirely,
+ * meant for after every app has cut over to createSessionReader (default false). A dropOld run
+ * never merges, and refuses unless identity already holds migrated users. */
 export type MigrateIdentityOptions = { dryRun?: boolean; dropOld?: boolean };
 
 /** One userId reference rewrite's result. */
@@ -79,7 +80,8 @@ export const earliest = (a: AppUser, b: AppUser): AppUser => {
  * @param collection {string} the collection name, same in every app and in identity
  * @param extra {(app: MigrateAppSpec) => Document} extra fields merged into each copy
  * @param dedupe {((doc: Document) => string) | undefined} a key that skips a repeat
- * @returns {Promise<number>} how many rows were copied
+ * @param write {boolean} false counts what would be copied without inserting (dry run)
+ * @returns {Promise<number>} how many rows were (or would be) copied
  */
 export const copyByUserId = async (
   apps: readonly MigrateAppSpec[],
@@ -88,6 +90,7 @@ export const copyByUserId = async (
   collection: string,
   extra: (app: MigrateAppSpec) => Document,
   dedupe?: (doc: Document) => string,
+  write = true,
 ): Promise<number> => {
   const seen = new Set<string>();
   let copied = 0;
@@ -102,7 +105,8 @@ export const copyByUserId = async (
         seen.add(key);
       }
       const { _id, userId, ...fields } = doc;
-      await identityDb
+      if (write)
+        await identityDb
         .collection(collection)
         .insertOne({ ...fields, ...extra(app), userId: new ObjectId(newUserId) });
       copied += 1;
