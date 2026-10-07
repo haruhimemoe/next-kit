@@ -1,7 +1,7 @@
 {
   "name": "@haruhimemoe/next-kit",
-  "version": "0.14.0",
-  "description": "The Next.js plumbing the haruhime.moe tools share: JSON route helpers, rate limits and budgets in MongoDB, bearer machine auth, zod env parsing, a connect-once MongoDB client with safe index builds, better-auth with osu! sign-in, the signed-in marker and account store for the browser, SEO: metadata, robots.txt, sitemaps, JSON-LD and llms.txt, per-app API keys and the /api/v1 guard, account export/delete fan-out and the identity inbox.",
+  "version": "0.15.0",
+  "description": "The Next.js plumbing the haruhime.moe tools share: JSON route helpers, rate limits and budgets in MongoDB, bearer machine auth, zod env parsing, a connect-once MongoDB client with safe index builds, better-auth with osu! sign-in, the signed-in marker and account store for the browser, SEO: metadata, robots.txt, sitemaps, JSON-LD and llms.txt, per-app API keys and the /api/v1 guard, account export/delete fan-out and the identity inbox, and locale negotiation with optional next-intl glue.",
   "keywords": [
     "nextjs",
     "next.js",
@@ -15,7 +15,8 @@
     "json-ld",
     "sitemap",
     "llms.txt",
-    "api keys"
+    "api keys",
+    "i18n"
   ],
   "homepage": "https://github.com/haruhimemoe/next-kit#readme",
   "bugs": "https://github.com/haruhimemoe/next-kit/issues",
@@ -86,6 +87,14 @@
       "types": "./dist/inbox/index.d.ts",
       "default": "./dist/inbox/index.js"
     },
+    "./i18n": {
+      "types": "./dist/i18n/index.d.ts",
+      "default": "./dist/i18n/index.js"
+    },
+    "./i18n/next-intl": {
+      "types": "./dist/i18n/next-intl/index.d.ts",
+      "default": "./dist/i18n/next-intl/index.js"
+    },
     "./check/migrate-identity": {
       "types": "./dist/check/migrate-identity.d.ts",
       "default": "./dist/check/migrate-identity.js"
@@ -128,6 +137,7 @@
     "mongoose": "^9.10.2",
     "msw": "^2.15.0",
     "next": "^16.3.6",
+    "next-intl": "^4.14.0",
     "react": "^19.3.0",
     "vitest": "^5.0.1",
     "zod": "^4.6.5"
@@ -160,6 +170,9 @@
     "next": {
       "optional": true
     },
+    "next-intl": {
+      "optional": true
+    },
     "react": {
       "optional": true
     },
@@ -185,6 +198,7 @@
     "mongoose": "9.10.2",
     "msw": "2.15.0",
     "next": "16.3.6",
+    "next-intl": "4.14.9",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "typescript": "7.0.2",

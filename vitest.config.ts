@@ -5,7 +5,7 @@
  *       with a 95% floor on src/.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Sep 28, 2026
+ * @modified Tue Oct 6, 2026
  */
 
 import { defineConfig } from "vitest/config";
@@ -16,6 +16,9 @@ export default defineConfig({
     globalSetup: ["tests/setup/mongo-global.ts"],
     // One in-memory server: files that use it clear their own collections.
     hookTimeout: 60_000,
+    // next-intl imports "next/server" without an extension, which Node's ESM resolver refuses;
+    // inlining lets Vite resolve it the way Next's bundler does.
+    server: { deps: { inline: ["next-intl"] } },
     coverage: {
       provider: "v8",
       include: ["src/**/*.{ts,tsx}"],

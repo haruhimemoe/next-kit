@@ -11,7 +11,7 @@
  */
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import * as account from "../src/account/index.js";
 import * as apiKeys from "../src/api-keys/index.js";
 import * as auth from "../src/auth/index.js";
@@ -20,6 +20,7 @@ import * as migrateIdentity from "../src/check/migrate-identity.js";
 import * as docsFiles from "../src/docs/files/index.js";
 import * as docs from "../src/docs/index.js";
 import * as env from "../src/env/index.js";
+import * as i18n from "../src/i18n/index.js";
 import * as inbox from "../src/inbox/index.js";
 import * as legal from "../src/legal/index.js";
 import * as mongo from "../src/mongo/index.js";
@@ -44,6 +45,8 @@ const ENTRIES = [
   "vcs",
   "account",
   "inbox",
+  "i18n",
+  "i18n/next-intl",
 ];
 /** Non-index entry points: exports map to a specific file, not <entry>/index.js. */
 const EXTRA_ENTRIES = { "check/migrate-identity": "check/migrate-identity" };
@@ -97,6 +100,36 @@ it("keeps the browser entry point free of server code", () => {
 
 it("keeps the seo entry point free of runtime imports (Next's types only)", () => {
   expect([...loads(new URL("../src/seo/index.ts", import.meta.url))]).toEqual([]);
+});
+
+it("keeps next-intl inside i18n/next-intl only", () => {
+  expect([...loads(new URL("../src/i18n/index.ts", import.meta.url))]).toEqual([]);
+  expect([...loads(new URL("../src/i18n/next-intl/index.ts", import.meta.url))].sort()).toEqual([
+    "next-intl/middleware",
+    "next-intl/server",
+  ]);
+  for (const entry of ENTRIES.filter((name) => name !== "i18n/next-intl")) {
+    const found = [...loads(new URL(`../src/${entry}/index.ts`, import.meta.url))];
+    expect(
+      found.filter((name) => name.startsWith("next-intl")),
+      entry,
+    ).toEqual([]);
+  }
+});
+
+it("loads i18n when next-intl is missing", async () => {
+  vi.resetModules();
+  for (const id of ["next-intl", "next-intl/server", "next-intl/middleware"]) {
+    vi.doMock(id, () => {
+      throw new Error(`Cannot find module '${id}'`);
+    });
+  }
+  const pure = await import("../src/i18n/index.js");
+  expect(pure.negotiateLocale({ locales: ["en"], defaultLocale: "en" }, "ja")).toBe("en");
+  await expect(import("../src/i18n/next-intl/index.js")).rejects.toThrow();
+  vi.doUnmock("next-intl/server");
+  vi.doUnmock("next-intl/middleware");
+  vi.doUnmock("next-intl");
 });
 
 it("keeps every source file under 200 lines", () => {
@@ -292,6 +325,7 @@ it("exports the documented seo API", () => {
       "TITLE_SEPARATOR",
       "clampDescription",
       "homeMetadata",
+      "hreflangAlternates",
       "ld",
       "llmsFull",
       "llmsTxt",
@@ -420,5 +454,15 @@ it("exports the documented inbox API", () => {
     "createInboxStore",
     "inboxIndexSpecs",
     "matchApp",
+  ]);
+});
+
+it("exports the documented i18n API", () => {
+  expect(Object.keys(i18n).sort()).toEqual([
+    "ACCEPT_LANGUAGE_MAX_ENTRIES",
+    "ACCEPT_LANGUAGE_MAX_LENGTH",
+    "DEFAULT_LOCALES",
+    "hasLocale",
+    "negotiateLocale",
   ]);
 });
