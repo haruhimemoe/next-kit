@@ -43,4 +43,21 @@ describe("createI18nMiddleware", () => {
     const pass = createI18nMiddleware({ config, next: () => undefined });
     expect((await pass(req("/ja/account"))).status).toBe(200);
   });
+
+  it("keeps next-intl's locale cookie on the app's own response and passes the intl response", async () => {
+    let seen: Response | undefined;
+    const middleware = createI18nMiddleware({
+      config,
+      next: async (_req, intl) => {
+        seen = intl;
+        return new Response("app", { status: 401 });
+      },
+    });
+    const response = await middleware(req("/ja/account"));
+    expect(response.status).toBe(401);
+    expect(seen?.status).toBe(200);
+    expect(response.headers.get("set-cookie") ?? "").toMatch(/NEXT_LOCALE=ja/);
+    const same = createI18nMiddleware({ config, next: (_req, intl) => intl });
+    expect((await same(req("/ja/account"))).status).toBe(200);
+  });
 });

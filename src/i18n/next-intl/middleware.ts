@@ -20,10 +20,14 @@ export type I18nMiddlewareOptions = {
   /** Like ".haruhime.moe": the NEXT_LOCALE cookie's domain. Host-only when unset. */
   cookieDomain?: string;
   /**
-   * Runs after locale handling unless next-intl redirected. A Response it returns is sent
-   * instead of next-intl's; undefined keeps next-intl's.
+   * Runs after locale handling unless next-intl redirected, with next-intl's response (which
+   * may carry its rewrite and the NEXT_LOCALE cookie). A Response it returns is sent instead,
+   * with next-intl's Set-Cookie headers copied onto it; undefined keeps next-intl's.
    */
-  next?: (req: NextRequest) => Response | undefined;
+  next?: (
+    req: NextRequest,
+    response: Response,
+  ) => Response | undefined | Promise<Response | undefined>;
 };
 
 /**
@@ -50,6 +54,9 @@ export const createI18nMiddleware = (
   return async (req) => {
     const response = intl(req);
     if (response.status >= 300 && response.status < 400) return response;
-    return options.next?.(req) ?? response;
+    const own = await options.next?.(req, response);
+    if (!own || own === response) return response;
+    for (const cookie of response.headers.getSetCookie()) own.headers.append("set-cookie", cookie);
+    return own;
   };
 };

@@ -57,6 +57,28 @@ describe("matchApp", () => {
 });
 
 describe("createInboxRoutes", () => {
+  it("counts failed bearers when asked: 429 once limited, 401 while allowed", async () => {
+    const rule = { scope: "inbox-fail", limit: 1, windowSeconds: 60 };
+    const request = () => new Request(`${HUB}/api/internal/inbox`, { method: "POST", body: "{}" });
+    const limited = vi.fn(async () => ({ allowed: false, limit: 1, remaining: 0, resetAt: 0 }));
+    const blocked = createInboxRoutes({
+      store,
+      apps,
+      env,
+      failures: { limiter: { hit: limited } as never, rule },
+    });
+    expect((await blocked.post(request())).status).toBe(429);
+    const allowed = vi.fn(async () => ({ allowed: true, limit: 1, remaining: 1, resetAt: 0 }));
+    const open = createInboxRoutes({
+      store,
+      apps,
+      env,
+      failures: { limiter: { hit: allowed } as never, rule },
+    });
+    expect((await open.post(request())).status).toBe(401);
+    expect(allowed).toHaveBeenCalledOnce();
+  });
+
   it("answers 401 without a matching secret, 503 with none configured", async () => {
     expect((await post({ op: "putInvite", invite }, null)).status).toBe(401);
     expect((await post({ op: "putInvite", invite }, "short")).status).toBe(401);
