@@ -6,10 +6,11 @@
  *       and llms.txt. No runtime imports: Next's types only, so it runs anywhere.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Sep 28, 2026
+ * @modified Tue Oct 6, 2026
  */
 
 export { clampDescription, DESCRIPTION_MAX } from "./describe.js";
+export { hreflangAlternates } from "./hreflang.js";
 export { ld, serializeLd } from "./ld.js";
 export type {
   CreativeWorkOptions,

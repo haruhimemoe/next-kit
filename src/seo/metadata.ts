@@ -6,7 +6,7 @@
  *       with the canonical and og:url set together from one path (T1, T3).
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Sep 28, 2026
+ * @modified Tue Oct 6, 2026
  */
 
 import type { Metadata } from "next";
@@ -44,6 +44,8 @@ export type PageMetadataOptions = {
   images?: readonly OgImage[];
   modifiedTime?: string | Date;
   publishedTime?: string | Date;
+  /** hreflang alternates (see hreflangAlternates), written next to the canonical. */
+  alternates?: { languages: Record<string, string> };
 };
 
 const DEFAULT_LOCALE = "en_US";
@@ -118,7 +120,9 @@ export const pageMetadata = (site: Site, options: PageMetadataOptions): Metadata
   return {
     title: { absolute: title },
     description,
-    alternates: { canonical: url },
+    alternates: options.alternates
+      ? { canonical: url, languages: options.alternates.languages }
+      : { canonical: url },
     openGraph,
     twitter: twitter(site, { title, description, images: images.map((image) => image.url) }),
     ...(options.index === false ? { robots: { index: false, follow: true } } : {}),
