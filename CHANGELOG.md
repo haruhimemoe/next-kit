@@ -4,6 +4,13 @@ All notable changes to `@haruhimemoe/next-kit` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-10-06
+
+### Added
+- `auth`: Discord link for the hub. `discordLinkConfig(env, hubUrl)` (null when `DISCORD_CLIENT_ID` or `DISCORD_CLIENT_SECRET` is unset, which turns the feature off), `createDiscordLinkRoutes` (POST `start` behind `refuseCrossSite`, GET `callback`, POST `unlink`; a signed, 10-minute, host-only state cookie; writes only `discordId` and `discordUsername`, never a token or an `account` row; `?discord=linked|taken|error`), `findUserByDiscordId` (refuses banned users), `DISCORD_SCOPES` and `DISCORD_STATE_COOKIE`.
+- `mongo`: `buildIdentityIndexes` adds a partial unique index on `user.discordId` (`IDENTITY_INDEXES.userDiscordId`). A duplicate-key error on link maps to `taken`.
+- `api-keys`: scopes. `createApiKeyStore({ scopes })` declares the app's names, `issue(userId, scopes?)` defaults to `["*"]` and refuses undeclared names, `ApiKeyInfo` and `ApiKeyMatch` carry `scopes` (a stored key without the field reads as `["*"]`, so nothing migrates), and `withApiKey(handler, { scope })` answers 403 `insufficient_scope`. New `hasScope`, `normalizeScopes`, `ALL_SCOPES` and `API_INSUFFICIENT_SCOPE`.
+
 ## [0.12.2] - 2026-10-06
 
 ### Fixed

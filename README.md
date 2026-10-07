@@ -297,6 +297,10 @@ The command prints one `pass` or `FAIL` line per standard, names each missing fi
 | `createSessionReader({ identityDb, secret, hubUrl, cookieName?, updateAgeSeconds?, fetchImpl?, now? })` | A satellite's read of `identity`'s session, with zero database writes: verifies the signed `better-auth.session_token` cookie itself (HMAC-SHA256, `node:crypto`, constant-time) instead of running `betterAuth()`, since better-auth's own `/get-session` writes on refresh. Past `updateAgeSeconds`, fires an injectable, fire-and-forget ping at the hub's `/api/auth/get-session` to extend the session. |
 | `IDENTITY_USER_FIELDS` | The identity-only user fields (`locale`, `notificationPrefs`, `bannedAt`, `banReason`, `limits`, `discordId`, `discordUsername`), all `input: false`. Merged into every `createOsuAuth` instance's `additionalFields`, single-DB apps included. |
 | `osuProvider`, `osuProfileToUser`, `withoutTokens`, `OSU_PROVIDER_ID`, `OSU_USER_FIELDS` | The pieces `createOsuAuth` is built from. |
+| `discordLinkConfig(env, hubUrl)` | The Discord link's config from `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET`, with the redirect URI `${hubUrl}/api/account/discord/callback`. Null when either is unset: the feature is off. |
+| `createDiscordLinkRoutes({ config, identityDb, secret, currentUser, returnPath?, siteTitle?, fetcher?, now? })` | The hub's Discord link: `start` (POST), `callback` (GET) and `unlink` (POST). See [Discord link](#discord-link-013). |
+| `findUserByDiscordId(identityDb, discordId)` | The identity user who linked that Discord id, or null (nobody, or banned). Read-only, for bots and satellites. |
+| `DISCORD_SCOPES`, `DISCORD_STATE_COOKIE` | `["identify"]`, and the state cookie's name (`haruhime-discord-state`). |
 
 ### auth-react
 
@@ -367,10 +371,12 @@ Since 0.3.0. Every helper takes the app's `Site`: `name`, `url` (the canonical o
 | `API_KEYS_COLLECTION` | The collection every app keeps its keys in: `api_keys`. |
 | `LAST_USED_INTERVAL_MS` | `lastUsedAt` is written at most this often (an hour), to save writes. |
 | `apiKeyIndexSpecs(collection?)` | Unique `userId` and unique `hash` (`secret: true`, never logged), for the app's own index list. |
-| `createApiKeyStore({ prefix, db, collection?, now? })` | One key per user over MongoDB: `issue(userId)`, `info(userId)`, `revoke(userId)`, `authenticate(key)` (the owner's user id and a `stamp()` to record the use), `deleteFor(userId)` and `ensureIndexes()`. Throws `TypeError` on a bad prefix. |
+| `createApiKeyStore({ prefix, db, collection?, now?, scopes? })` | One key per user over MongoDB: `issue(userId, scopes?)`, `info(userId)`, `revoke(userId)`, `authenticate(key)` (the owner's user id and a `stamp()` to record the use), `deleteFor(userId)` and `ensureIndexes()`. Throws `TypeError` on a bad prefix. Key info and matches carry `scopes`. |
 | `API_LIMITS` | The standard fixed-window limits every haruhime API uses: `api` (60/min per user), `apiWrite` (10/min per user, also counted by `api`), `authFail` (20/min per IP), `keyCreate` (10/hour per user). |
 | `API_SERVER_ERROR` | The 500 message when a key lookup or handler throws. |
-| `createApiKeyGuard({ store, limiter, resolveCaller, messages, limits?, now? })` | Returns `withApiKey(handler)`: a `/api/v1` route handler that runs `handler(request, caller, context)` only for a good key under `API_LIMITS`, with `RateLimit-*` headers, `Cache-Control: no-store`, a 401 with `WWW-Authenticate: Bearer` for a missing or bad key (counted per IP), and a JSON 500 for a thrown error. No CORS headers: the API is for servers and bots. |
+| `hasScope(granted, needed)`, `normalizeScopes(scopes, declared?)`, `ALL_SCOPES` | Scope checks: `"*"` grants every scope. See [API key scopes](#api-key-scopes-013). |
+| `API_INSUFFICIENT_SCOPE` | The 403 message when a key lacks a handler's scope. |
+| `createApiKeyGuard({ store, limiter, resolveCaller, messages, limits?, now? })` | Returns `withApiKey(handler, { scope? })`: a `/api/v1` route handler that runs `handler(request, caller, context)` only for a good key under `API_LIMITS`, with `RateLimit-*` headers, `Cache-Control: no-store`, a 401 with `WWW-Authenticate: Bearer` for a missing or bad key (counted per IP), a 403 `insufficient_scope` for a key without `scope`, and a JSON 500 for a thrown error. No CORS headers: the API is for servers and bots. |
 
 ### docs
 
@@ -497,6 +503,41 @@ await migrateIdentity(
   identityDb,
   { dryRun: false },
 );
+```
+
+## Discord link (0.13)
+
+The hub lets a signed-in user link one Discord account. It stores only `discordId` and `discordUsername` on the identity user: no account row, no Discord token.
+
+Env vars (hub only): `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET`. With either unset, every route answers 404 and the account page should hide its Discord row. In the Discord developer portal, add the redirect `https://<hub>/api/account/discord/callback`.
+
+```ts
+const discord = createDiscordLinkRoutes({
+  config: discordLinkConfig(process.env, env.BETTER_AUTH_URL),
+  identityDb: async () => getIdentityDb(),
+  secret: env.BETTER_AUTH_SECRET,
+  currentUser: (req) => getSessionUser(getAuth(), req.headers),
+});
+// app/api/account/discord/start/route.ts     export const POST = discord.start;
+// app/api/account/discord/callback/route.ts  export const GET = discord.callback;
+// app/api/account/discord/route.ts           export const POST = discord.unlink;
+```
+
+- `start` is a POST from a form button on the account page, behind the same-site check. A signed-out user goes to `/signin?next=<returnPath>`.
+- `callback` lands on `returnPath` (default `/account`) with `?discord=linked`, `taken` (another user holds that Discord) or `error`.
+- Banned users can't link. One Discord account belongs to one user at most: `buildIdentityIndexes` adds a unique `discordId` index.
+- Wrap `start` and `callback` in your rate limit (10 per IP per 10 minutes is plenty).
+
+A bot looks people up with `findUserByDiscordId(identityDb, interaction.user.id)`, using a database user with `read` on `identity`.
+
+## API key scopes (0.13)
+
+A key carries `scopes`. `"*"` grants everything, and is what `issue(userId)` gives and what a key made before 0.13 reads as.
+
+```ts
+const apiKeys = createApiKeyStore({ prefix: "hpk_", db: getDb, scopes: ["read", "write"] });
+await apiKeys.issue(user.id, ["read"]); // a read-only key; an undeclared name throws TypeError
+export const POST = withApiKey(handler, { scope: "write" }); // a read-only key gets 403
 ```
 
 ## Migration
