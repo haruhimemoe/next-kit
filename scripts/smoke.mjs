@@ -15,6 +15,7 @@ import * as auth from "../dist/auth/index.js";
 import * as authReact from "../dist/auth-react/index.js";
 import * as docs from "../dist/docs/index.js";
 import * as env from "../dist/env/index.js";
+import * as i18n from "../dist/i18n/index.js";
 import * as inbox from "../dist/inbox/index.js";
 import * as legal from "../dist/legal/index.js";
 import * as mongo from "../dist/mongo/index.js";
@@ -37,6 +38,9 @@ const ENTRIES = [
   "vcs",
   "account",
   "inbox",
+  "i18n",
+  // Exists only: next-intl imports "next/server" bare, which plain Node refuses (Next resolves it).
+  "i18n/next-intl",
 ];
 for (const entry of ENTRIES) {
   for (const file of ["index.js", "index.d.ts"]) {
@@ -135,4 +139,10 @@ assert.equal(
   null,
 );
 assert.equal(inbox.inboxIndexSpecs.length, 4);
+const locales = { locales: ["en", "ja"], defaultLocale: "en" };
+assert.equal(i18n.negotiateLocale(locales, "ja-JP,en;q=0.5"), "ja");
+assert.equal(
+  seo.hreflangAlternates(locales, "/a", "https://x.test")["x-default"],
+  "https://x.test/a",
+);
 console.log("smoke: ok");

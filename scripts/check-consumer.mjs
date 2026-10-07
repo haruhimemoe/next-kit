@@ -3,15 +3,16 @@
  * @desc Installs the packed package with a given zod version, and the other peers at the versions
  *       the apps pin (this repo's devDependencies), into a throwaway project, then typechecks a
  *       strict consumer that imports every entry point and runs it (testing only typechecks: it
- *       needs Vitest's runner). Proves the zod peer range's floor. Usage: node
+ *       needs Vitest's runner). Proves the zod peer range's floor. next-intl is left out on purpose:
+ *       every entry point but i18n/next-intl must work without it. Usage: node
  *       scripts/check-consumer.mjs <zod version> (after `bun run build`). Needs the npm registry.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Sun Oct 4, 2026
+ * @modified Tue Oct 6, 2026
  */
 
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,7 +22,7 @@ if (!zod) throw new Error("usage: node scripts/check-consumer.mjs <zod version>"
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const pkg = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8"));
 const PEERS = [
-  ...Object.keys(pkg.peerDependencies).filter((name) => name !== "zod"),
+  ...Object.keys(pkg.peerDependencies).filter((name) => name !== "zod" && name !== "next-intl"),
   "react-dom",
   "@types/react",
   "@types/node",
@@ -57,6 +58,10 @@ import { createMongo, defineCollections, ensureIndexes, type IndexSpec } from "@
 import { createRateLimiter, parseJsonBody, parseIdList, refuseCrossSite, type RateLimitRule } from "@haruhimemoe/next-kit/server";
 import { HARUHIME_ORG, ld, pageMetadata, robots, serializeLd, sitemapEntries, type Site } from "@haruhimemoe/next-kit/seo";
 import type { setupTestDb, TestDbOptions } from "@haruhimemoe/next-kit/testing";
+import { hreflangAlternates } from "@haruhimemoe/next-kit/seo";
+import { DEFAULT_LOCALES, hasLocale, negotiateLocale, type LocaleConfig } from "@haruhimemoe/next-kit/i18n";
+import "@haruhimemoe/next-kit/account";
+import "@haruhimemoe/next-kit/inbox";
 import type { Metadata, MetadataRoute } from "next";
 
 const env = createServerEnv({ schema: osuAppEnvSchema.extend({ EXTRA: z.string().optional() }), placeholders: OSU_APP_PLACEHOLDERS, secretKeys: OSU_APP_SECRET_KEYS });
@@ -108,6 +113,9 @@ if (findEntry(content, "guides", "make-a-pack")?.slug !== "make-a-pack") throw n
 const legalSite: LegalSite = { siteName: "x", operator: "x", contactEmail: "x@x.test", effectiveDate: "2026-10-05", stores: [], processors: [], cookies: [] };
 if (legalEntries(legalSite).length !== 5) throw new Error("legal entries");
 if (!LegalContact({ site: legalSite })) throw new Error("legal block");
+const locales: LocaleConfig = { locales: [...DEFAULT_LOCALES, "ja"], defaultLocale: "en" };
+if (negotiateLocale(locales, "ja-JP") !== "ja" || !hasLocale(locales, "en")) throw new Error("i18n");
+if (hreflangAlternates(locales, "/a", "https://x.test").ja !== "https://x.test/ja/a") throw new Error("hreflang");
 console.log("consumer: ok");
 `;
 
@@ -144,6 +152,8 @@ try {
     }),
   );
   writeFileSync(path.join(dir, "consumer.ts"), CONSUMER);
+  if (existsSync(path.join(dir, "node_modules", "next-intl")))
+    throw new Error("next-intl installed");
   run(path.join(root, "node_modules", ".bin", "tsc"), ["-p", dir]);
   run(process.execPath, ["--experimental-strip-types", "--no-warnings", "consumer.ts"]);
   console.log(`zod ${zod}: ok`);

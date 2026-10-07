@@ -4,6 +4,16 @@ All notable changes to `@haruhimemoe/next-kit` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2026-10-06
+
+### Added
+- `i18n` (new subpath, no next-intl import): `LocaleConfig`, `DEFAULT_LOCALES`, `hasLocale` and `negotiateLocale` (saved user locale, then Accept-Language q-order with a region fallback, then the default). The header is capped at 1 KB and 20 entries before parsing.
+- `i18n/next-intl` (new subpath): `createRequestConfig` (injected app and package catalog loaders, merged deeply with the app's last) and `createI18nMiddleware` (next-intl's middleware, "as-needed" prefix, `NEXT_LOCALE` cookie on an optional parent domain, then the app's own step). Plus `mergeMessages` and `resolveRequestConfig`. `next-intl` ^4.14.0 is an optional peer dependency; only this subpath needs it.
+- `seo`: `hreflangAlternates(config, path, baseUrl)`.
+
+### Changed
+- `seo`: `pageMetadata` takes `alternates: { languages }` and writes it next to the canonical.
+
 ## [0.14.0] - 2026-10-06
 
 ### Added

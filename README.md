@@ -17,6 +17,7 @@ The Next.js server plumbing the haruhime.moe tools share. [packs.haruhime.moe](h
 - **`/vcs`:** document history in MongoDB on top of `@haruhimemoe/vcs`: one line of revisions per document, saves merged onto whatever landed since their base, revert, diffs, and autosave pruning.
 - **`/account`:** account export and delete across every app. The hub fans out to each app with that app's own secret; each app serves two small handlers.
 - **`/inbox`:** invites and notifications in the shared identity database. The hub stores them; apps write through the hub.
+- **`/i18n`:** locale lists and Accept-Language negotiation, with no next-intl import. **`/i18n/next-intl`:** the request config and locale middleware on top of next-intl (install it first).
 
 Every name, path, limit and message comes from the caller. There is no root entry point; import a subpath.
 
@@ -43,6 +44,8 @@ bun add @haruhimemoe/next-kit zod
 | `docs/files` | nothing else (`node:fs` is built in) |
 | `legal` | `react` ^19.3.0 (types only, for JSX) |
 | `vcs` | `mongodb` ^7.6.0, `@haruhimemoe/vcs` ^0.1.0 |
+| `i18n` | nothing else |
+| `i18n/next-intl` | `next-intl` ^4.14.0, `next` ^16.3.6 |
 
 ## Use
 
@@ -329,7 +332,8 @@ Since 0.3.0. Every helper takes the app's `Site`: `name`, `url` (the canonical o
 | --- | --- |
 | `siteMetadata(site)` | The root layout's `Metadata`: `metadataBase`, title default "keyword · host" and template "%s · host", the clamped description, `applicationName`, openGraph (type, site name, locale, images) and the twitter card. No canonical (a layout canonical leaks into every child) and no icons (the app's icon files). |
 | `homeMetadata(site, { title?, description? })` | `pageMetadata` for `/` with the site's keyword title. |
-| `pageMetadata(site, { path, title, titleSuffix?, description?, index?, ogType?, images?, modifiedTime?, publishedTime? })` | An absolute "keyword · host" title (`titleSuffix` defaults to `"auto"`: "keyword · pools" when the full title passes 60 characters and the site sets `shortTitleSuffix`; `"full"`, `"short"` or `"none"` force one), the description clamped to 160, `alternates.canonical` and `openGraph.url` set together to the same absolute URL, and a full openGraph and twitter card (images default to `site.ogImages`: Next replaces a layout's openGraph, it doesn't merge it). `index: false` adds noindex, follow. `ogType: "article"` writes the ISO times it has. Throws on a relative path, another origin or a blank title. |
+| `pageMetadata(site, { path, title, titleSuffix?, description?, index?, ogType?, images?, modifiedTime?, publishedTime?, alternates? })` | An absolute "keyword · host" title (`titleSuffix` defaults to `"auto"`: "keyword · pools" when the full title passes 60 characters and the site sets `shortTitleSuffix`; `"full"`, `"short"` or `"none"` force one), the description clamped to 160, `alternates.canonical` and `openGraph.url` set together to the same absolute URL, and a full openGraph and twitter card (images default to `site.ogImages`: Next replaces a layout's openGraph, it doesn't merge it). `index: false` adds noindex, follow. `ogType: "article"` writes the ISO times it has. Throws on a relative path, another origin or a blank title. |
+| `hreflangAlternates(config, path, baseUrl)` | Since 0.15.0. `{ en: url, ja: url, "x-default": url }` for `pageMetadata`'s `alternates: { languages }`: the default locale has no prefix, every other one is `/<locale>/...`, like the i18n middleware. |
 | `notFoundMetadata(site, what?)` | "Pack not found · host" (shortened like `"auto"`) and noindex, for a `generateMetadata` whose record is missing. |
 | `clampDescription(text, max?)`, `DESCRIPTION_MAX` | One line, at most `max` (160) characters: cut at a word, trailing punctuation dropped, "…" added. |
 | `pageTitle(site, title, mode?)`, `TITLE_SEPARATOR`, `TITLE_MAX`, `TitleSuffixMode` | "keyword · host", the suffix added once (either suffix already there counts). `mode`: `"full"` (default), `"short"` (the full one when the site has none), `"none"`, or `"auto"` (short past `TITLE_MAX`, 60). |
@@ -474,6 +478,52 @@ Who may read a history, and the routes around it, stay the app's.
 | `createInboxClient({ hubUrl, secret })` | An app's `putInvite(invite)` and `notify({ userId, kind, title, href? })`. Throws when the hub refuses. |
 | `matchApp(token, apps, env)` | Which app a bearer belongs to. |
 | `INBOX_COLLECTIONS`, `inboxIndexSpecs`, `NOTIFICATION_TTL_SECONDS` | `invite` and `notification`, their indexes, 90 days. |
+
+### i18n
+
+| Export | What it does |
+| --- | --- |
+| `LocaleConfig`, `DEFAULT_LOCALES` | `{ locales, defaultLocale }`; `["en"]`. |
+| `hasLocale(config, value)` | True when `value` is exactly one of the locales. |
+| `negotiateLocale(config, acceptLanguage, userLocale?)` | The user's saved locale when served, then Accept-Language in q-order (`ja-JP` falls back to `ja`), then the default. Only the first 1 KB and 20 entries are read (`ACCEPT_LANGUAGE_MAX_LENGTH`, `ACCEPT_LANGUAGE_MAX_ENTRIES`); malformed entries are skipped. |
+
+### i18n/next-intl
+
+| Export | What it does |
+| --- | --- |
+| `createRequestConfig({ config, app, packages?, userLocale? })` | The default export for `i18n/request.ts`. Locale: the matched segment, then `userLocale()`, then the default. Messages: package catalogs in order, then the app's, merged deeply (later wins). |
+| `createI18nMiddleware({ config, cookieDomain?, next? })` | next-intl's middleware with the `"as-needed"` prefix and the `NEXT_LOCALE` cookie (on `cookieDomain` when set). A redirect is returned as is; otherwise `next(req)` runs and its Response wins. |
+| `mergeMessages(...catalogs)`, `resolveRequestConfig(options, requested)` | The merge and the locale pick on their own. |
+
+## i18n (0.15)
+
+Locale negotiation needs nothing. The next-intl glue lives in its own subpath, so an app that doesn't install next-intl never loads or type-checks against it.
+
+```sh
+bun add next-intl
+```
+
+```ts
+// i18n/config.ts
+export const LOCALES = { locales: ["en", "ja"], defaultLocale: "en" } as const satisfies LocaleConfig;
+
+// i18n/request.ts
+import { createRequestConfig } from "@haruhimemoe/next-kit/i18n/next-intl";
+export default createRequestConfig({
+  config: LOCALES,
+  app: async (locale) => (await import(`../messages/${locale}.json`)).default,
+  packages: [async (locale) => (await import(`@haruhimemoe/ui/messages/${locale}.json`)).default],
+});
+
+// proxy.ts (middleware)
+import { createI18nMiddleware } from "@haruhimemoe/next-kit/i18n/next-intl";
+export default createI18nMiddleware({ config: LOCALES, cookieDomain: ".haruhime.moe" });
+export const config = { matcher: ["/((?!api|_next|.*\\..*).*)"] };
+```
+
+- Write each loader as a literal `import()` so the bundler sees the catalogs.
+- The middleware runs in the edge runtime and touches no database. Keep rate limits and session checks in route handlers.
+- For hreflang, pass `alternates: { languages: hreflangAlternates(LOCALES, path, site.url) }` to `pageMetadata`.
 
 ## Identity (0.12)
 
@@ -649,7 +699,7 @@ For pools.haruhime.moe, `createMongo` runs `onConnect` (the privilege check, ind
 
 ## Compatibility
 
-ES modules for Node 22.12+ on the server. `auth-react` also runs in browsers; its hook and component files keep `"use client"`, and it loads only `react`, `next/navigation.js` and `@haruhimemoe/ui`. `server` loads `node:crypto` for machine auth. `seo` and `docs` load nothing at runtime (Next's types only, or nothing), so they run anywhere; `docs/files` loads `node:fs` and stays server only.
+ES modules for Node 22.12+ on the server. `auth-react` also runs in browsers; its hook and component files keep `"use client"`, and it loads only `react`, `next/navigation.js` and `@haruhimemoe/ui`. `server` loads `node:crypto` for machine auth. `seo`, `docs` and `i18n` load nothing at runtime (Next's types only, or nothing), so they run anywhere; `docs/files` loads `node:fs` and stays server only.
 
 ## License
 
