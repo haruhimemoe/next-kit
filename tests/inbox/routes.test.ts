@@ -89,6 +89,8 @@ describe("createInboxRoutes", () => {
     expect((await store.notificationsFor(USER))[0]).toMatchObject({ app: "bb", href: "/inbox" });
     const bad = await post({ op: "notify", notification: { ...note, href: "//evil.test" } });
     expect(bad.status).toBe(400);
+    const slash = await post({ op: "notify", notification: { ...note, href: "/\\evil.test" } });
+    expect(slash.status).toBe(400);
   });
 });
 

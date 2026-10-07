@@ -4,7 +4,8 @@
  *       /api/internal/account/<op> with that app's own secret, in parallel. Export tries each app
  *       once; delete tries up to 3 times (250 ms, then 1 s between). Only https base URLs are
  *       called, redirects are never followed (a 3xx is a failure, so a bearer can't leave for
- *       another host), and an app whose secret is unset is reported not_configured, not called.
+ *       another host), and an app whose secret is unset is reported not_configured, not called; for delete
+ *       that stops every app (the rest report skipped), so nothing is half deleted.
  *       exportBundle packs the identity record and each app's data into one JSON object.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
@@ -91,12 +92,20 @@ export const fanOut = async ({
   ...rest
 }: FanOutOptions): Promise<FanOutReport> => {
   const tries = rest.op === "delete" ? DELETE_RETRY_DELAYS_MS.length + 1 : 1;
+  const targets = apps.map((app) => {
+    const secret = secretFor(app, rest.env);
+    const url = appUrl(app, `${ACCOUNT_PATH}/${rest.op}`);
+    const error = !secret ? "not_configured" : !url ? "insecure_url" : null;
+    return { app, secret, url, error };
+  });
+  // Delete is all or nothing: one unusable app means no app is called, so no data goes partly.
+  const refuse = rest.op === "delete" && targets.some((target) => target.error);
   const results = await Promise.all(
-    apps.map(async (app): Promise<FanOutResult> => {
-      const secret = secretFor(app, rest.env);
-      if (!secret) return { id: app.id, ok: false, status: 0, error: "not_configured" };
-      const url = appUrl(app, `${ACCOUNT_PATH}/${rest.op}`);
-      if (!url) return { id: app.id, ok: false, status: 0, error: "insecure_url" };
+    targets.map(async ({ app, secret, url, error }): Promise<FanOutResult> => {
+      if (error || !secret || !url) {
+        return { id: app.id, ok: false, status: 0, error: error ?? "not_configured" };
+      }
+      if (refuse) return { id: app.id, ok: false, status: 0, error: "skipped" };
       let result = await callOnce({ ...rest, app, secret, url });
       for (let attempt = 1; !result.ok && attempt < tries; attempt++) {
         await sleep(DELETE_RETRY_DELAYS_MS[attempt - 1] ?? 0);

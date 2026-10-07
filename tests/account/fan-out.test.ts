@@ -140,4 +140,18 @@ describe("exportBundle", () => {
       apps: { bb: { posts: [] }, packs: { error: "not_configured" } },
     });
   });
+
+  it("calls no app for delete when one app is unusable", async () => {
+    const fetcher = fetcherFor(() => new Response(null, { status: 204 }));
+    const report = await fanOut({
+      apps,
+      op: "delete",
+      userId: USER,
+      env: { SECRET_BB: env.SECRET_BB },
+      fetcher,
+    });
+    expect(report.ok).toBe(false);
+    expect(report.results.map((r) => r.error)).toEqual(["skipped", "not_configured"]);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
 });

@@ -28,6 +28,7 @@ const osuId = z.number().int().positive().max(2_147_483_647);
 const href = z
   .string()
   .max(512)
+  .refine((v) => !/[\\\s]/.test(v), { message: "href can't hold backslashes or spaces." })
   .refine((v) => (v.startsWith("/") && !v.startsWith("//")) || v.startsWith("https://"), {
     message: "href must be a path or an https URL.",
   });
