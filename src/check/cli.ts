@@ -99,7 +99,9 @@ export const runMigrateIdentity = async (
     const apps = appIds.map((id) => ({ id, db: client.db(id) }));
     const report = await migrateIdentity(apps, client.db(to), { dryRun, dropOld });
     log(`next-kit migrate-identity: ${dryRun ? "dry run" : "executed"} (--to ${to})`);
-    log(`  users seen: ${report.usersSeen}, winners: ${report.usersWritten}`);
+    log(
+      `  users seen: ${report.usersSeen}, winners: ${report.usersWritten}, skipped (system accounts): ${report.usersSkipped}`,
+    );
     log(`  accounts copied: ${report.accountsCopied}, sessions dropped: ${report.sessionsDropped}`);
     log(`  api keys copied: ${report.apiKeysCopied}`);
     if (report.droppedCollections.length > 0) {

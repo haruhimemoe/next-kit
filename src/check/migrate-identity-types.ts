@@ -1,7 +1,6 @@
 /**
  * @file src/check/migrate-identity-types.ts
- * @desc Types for migrateIdentity (migrate-identity.ts), split out so that file stays under the
- *       200-line house limit.
+ * @desc Types for migrateIdentity (migrate-identity.ts), split out so that file stays under the 200-line house limit.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
  * @modified Tue Oct 6, 2026
@@ -9,8 +8,7 @@
 
 import { type Db, type Document, ObjectId } from "mongodb";
 
-/** The old per-app collections migrate-identity deletes from (sessions, always) or drops
- * entirely (--drop-old, after cutover). */
+/** The old per-app collections migrate-identity deletes from (sessions, always) or drops entirely (--drop-old, after cutover). */
 export const OLD_AUTH_COLLECTIONS = Object.freeze(["session", "account", "verification"]);
 
 /** A userId reference to rewrite in one of an app's own collections. */
@@ -38,15 +36,17 @@ export type ReferenceRewrite = { app: string; collection: string; field: string;
 export type DroppedCollection = { app: string; collection: string };
 
 /** What migrateIdentity did, or would do on a dry run: users seen across every app before
- * merging, winning identity rows written, winners that matched an existing identity user
- * instead (merged into it, filling only its missing fields), accounts/keys copied, sessions
- * dropped, references rewritten, old collections dropped, and the full old-id-to-winner idMap
- * (`"<appId>:<hex>"` -> the winning identity user id, hex — the existing identity user's id when
- * merged, otherwise a freshly minted one). */
+ * merging, system accounts skipped (no numeric osuId: never grouped, never inserted into
+ * identity, never in the id map), winning identity rows written, winners that matched an
+ * existing identity user instead (merged into it, filling only its missing fields),
+ * accounts/keys copied, sessions dropped, references rewritten, old collections dropped, and the
+ * full old-id-to-winner idMap (`"<appId>:<hex>"` -> the winning identity user id, hex — the
+ * existing identity user's id when merged, otherwise a freshly minted one). */
 export type MigrateReport = {
   dryRun: boolean;
   dropOld: boolean;
   usersSeen: number;
+  usersSkipped: number;
   usersWritten: number;
   usersMerged: number;
   accountsCopied: number;
@@ -73,6 +73,29 @@ export const earliest = (a: AppUser, b: AppUser): AppUser => {
   const atA = a.doc.createdAt?.getTime() ?? Number.POSITIVE_INFINITY;
   const atB = b.doc.createdAt?.getTime() ?? Number.POSITIVE_INFINITY;
   return atA <= atB ? a : b;
+};
+
+/**
+ * @function groupByOsuId
+ * @param allUsers {readonly AppUser[]} every user row read across every app
+ * @returns {{ groups: Map<number, AppUser[]>; usersSkipped: number }} users grouped by osuId,
+ *   and how many had no numeric osuId (system accounts): skipped, never grouped or id-mapped
+ */
+export const groupByOsuId = (
+  allUsers: readonly AppUser[],
+): { groups: Map<number, AppUser[]>; usersSkipped: number } => {
+  const groups = new Map<number, AppUser[]>();
+  let usersSkipped = 0;
+  for (const user of allUsers) {
+    if (typeof user.doc.osuId !== "number" || !Number.isFinite(user.doc.osuId)) {
+      usersSkipped += 1;
+      continue;
+    }
+    const group = groups.get(user.doc.osuId);
+    if (group) group.push(user);
+    else groups.set(user.doc.osuId, [user]);
+  }
+  return { groups, usersSkipped };
 };
 
 /** One osuId group's resolution: the winning identity id, whether it's a fresh insert or an

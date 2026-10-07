@@ -4,6 +4,14 @@ All notable changes to `@haruhimemoe/next-kit` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.2] - 2026-10-06
+
+### Fixed
+- `check`'s `next-kit migrate-identity` now skips users without a numeric `osuId` (system accounts) entirely: they're never grouped with other users, never inserted into `identity`, and never get an `idMap` entry, so references pointing at them are left untouched instead of being rewritten to nowhere. `MigrateReport` gains `usersSkipped`; the CLI's summary line reports it alongside `usersSeen`/`usersWritten`.
+
+### Changed
+- `auth`'s old `SessionReader` type (the better-auth instance shape used by `getOsuUser`/`getSessionUser`/`requireSession`/`requireAdmin`) is renamed to `OsuAuthInstance`, so `SessionReader` can mean one thing: `createSessionReader`'s own instance type (session-reader.ts), which the barrel used to export only as `SessionReaderInstance` to dodge this exact collision. `session.ts` keeps a `SessionReader` alias of `OsuAuthInstance` for source compatibility, and `session-reader.ts` keeps a `SessionReaderInstance` alias of `SessionReader` (the barrel exports both — `bb`/`packs`/`pools`/`haruhime.moe` all import `SessionReaderInstance`, none import the old `SessionReader`, so this is a non-breaking patch for every real consumer).
+
 ## [0.12.1] - 2026-10-06
 
 ### Changed

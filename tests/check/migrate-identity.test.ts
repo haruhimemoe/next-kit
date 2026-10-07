@@ -59,6 +59,39 @@ describe("migrateIdentity (dry run, the default)", () => {
   });
 });
 
+describe("migrateIdentity (system accounts)", () => {
+  it("skips users without a numeric osuId entirely: no identity rows, no rewrites", async () => {
+    const bbSystem = { _id: new ObjectId(), username: "bb-system", createdAt: new Date() };
+    const packsSystem = { _id: new ObjectId(), username: "packs-system", createdAt: new Date() };
+    await appDb("bb").collection("user").insertOne(bbSystem);
+    await appDb("packs").collection("user").insertOne(packsSystem);
+    await appDb("bb").collection("pack").insertOne({
+      _id: new ObjectId(),
+      ownerId: bbSystem._id.toHexString(),
+      name: "system pack",
+    });
+
+    const apps: MigrateAppSpec[] = [
+      { id: "bb", db: appDb("bb"), references: [{ collection: "pack", field: "ownerId" }] },
+      { id: "packs", db: appDb("packs") },
+    ];
+    const report = await migrateIdentity(apps, identityDb, { dryRun: false });
+
+    expect(report.usersSeen).toBe(2);
+    expect(report.usersSkipped).toBe(2);
+    expect(report.usersWritten).toBe(0);
+    expect(report.usersMerged).toBe(0);
+    expect(report.idMap[`bb:${bbSystem._id.toHexString()}`]).toBeUndefined();
+    expect(report.idMap[`packs:${packsSystem._id.toHexString()}`]).toBeUndefined();
+    expect(await identityDb.collection("user").countDocuments()).toBe(0);
+
+    const rewrite = report.referencesRewritten.find((r) => r.collection === "pack");
+    expect(rewrite?.modified).toBe(0);
+    const pack = await appDb("bb").collection("pack").findOne({});
+    expect(pack?.ownerId).toBe(bbSystem._id.toHexString());
+  });
+});
+
 describe("migrateIdentity (--execute)", () => {
   const seed = async () => {
     const early = userRow(2, "winner", new Date("2026-01-01"));

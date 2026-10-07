@@ -26,6 +26,7 @@ import { API_KEYS_COLLECTION } from "../api-keys/store.js";
 import {
   type AppUser,
   copyByUserId,
+  groupByOsuId,
   type MigrateAppSpec,
   type MigrateIdentityOptions,
   type MigrateReport,
@@ -56,23 +57,21 @@ export const migrateIdentity = async (
   identityDb: Db,
   { dryRun = true, dropOld = false }: MigrateIdentityOptions = {},
 ): Promise<MigrateReport> => {
-  // Collect every user row, then group by osuId (earliest createdAt wins).
+  // Collect every user row, then group by osuId (earliest createdAt wins). System accounts (no
+  // numeric osuId) are skipped entirely: never grouped, never inserted into identity, never in
+  // the id map. They stay in allUsers (so reference rewriting still sees every doc).
   const allUsers: AppUser[] = [];
   for (const app of apps) {
     const docs = await app.db.collection<RawUser>("user").find().toArray();
     for (const doc of docs) allUsers.push({ app: app.id, doc });
   }
-  const groups = new Map<number, AppUser[]>();
-  for (const user of allUsers) {
-    const group = groups.get(user.doc.osuId);
-    if (group) group.push(user);
-    else groups.set(user.doc.osuId, [user]);
-  }
+  const { groups, usersSkipped } = groupByOsuId(allUsers);
 
   const report: MigrateReport = {
     dryRun,
     dropOld,
     usersSeen: allUsers.length,
+    usersSkipped,
     usersWritten: 0,
     usersMerged: 0,
     accountsCopied: 0,

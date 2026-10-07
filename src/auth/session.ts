@@ -12,6 +12,13 @@
  *       need to know which one they're on. requireSession and requireAdmin refuse a banned
  *       user (null, same as no session); getOsuUser and getSessionUser don't, by design, so
  *       `requireSession` is the one call every route that must be signed in and unbanned uses.
+ *
+ *       0.12.2: the better-auth instance shape below was named `SessionReader`, clashing with
+ *       session-reader.ts's own `SessionReader` (its createSessionReader instance type, barrel-
+ *       exported as `SessionReaderInstance` to dodge the collision). Renamed to `OsuAuthInstance`
+ *       here so `SessionReader` can mean one thing: the reader. `SessionReader` below is now a
+ *       deprecated alias of `OsuAuthInstance` for source compatibility (no in-repo app imported
+ *       it directly; bb/packs/pools/haruhime.moe only ever imported `SessionReaderInstance`).
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
  * @modified Tue Oct 6, 2026
@@ -40,9 +47,13 @@ export type OsuSession = {
 };
 
 /** What getOsuUser needs from a better-auth instance (the hub, or a single-DB 0.11 app). */
-export type SessionReader = {
+export type OsuAuthInstance = {
   api: { getSession: (input: { headers: Headers }) => Promise<OsuSession | null> };
 };
+
+/** @deprecated use {@link OsuAuthInstance}. Kept so a 0.12.1 import of `SessionReader` (this
+ * file's old name for the better-auth instance shape) still resolves. */
+export type SessionReader = OsuAuthInstance;
 
 /** A satellite's createSessionReader instance: the other shape getSessionUser, requireSession
  * and requireAdmin accept. Spelled out here (rather than imported) so this file doesn't need
@@ -60,7 +71,7 @@ export type SatelliteSessionReader = {
 };
 
 /** Either session source: the hub's better-auth instance or a satellite's reader. */
-export type SessionSource = SessionReader | SatelliteSessionReader;
+export type SessionSource = OsuAuthInstance | SatelliteSessionReader;
 
 const isSatelliteReader = (source: SessionSource): source is SatelliteSessionReader =>
   !("api" in source);
@@ -81,13 +92,13 @@ export const toSessionUser = ({ user }: OsuSession): OsuSessionUser => ({
 
 /**
  * @function getOsuUser
- * @param auth {SessionReader} the better-auth instance (createOsuAuth's)
+ * @param auth {OsuAuthInstance} the better-auth instance (createOsuAuth's)
  * @param headers {Headers} request headers (the session cookie)
  * @returns {Promise<OsuSessionUser | null>} the signed-in user, or null (no, forged or expired
  *          session). Never checks bannedAt: use requireSession where a ban must refuse.
  */
 export const getOsuUser = async (
-  auth: SessionReader,
+  auth: OsuAuthInstance,
   headers: Headers,
 ): Promise<OsuSessionUser | null> => {
   const session = await auth.api.getSession({ headers });

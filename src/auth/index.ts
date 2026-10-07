@@ -31,12 +31,12 @@ export {
 export {
   getOsuUser,
   getSessionUser,
+  type OsuAuthInstance,
   type OsuSession,
   type OsuSessionUser,
   requireAdmin,
   requireSession,
   type SatelliteSessionReader,
-  type SessionReader,
   type SessionSource,
   toSessionUser,
 } from "./session.js";
@@ -44,6 +44,8 @@ export {
   createSessionReader,
   DEFAULT_SESSION_COOKIE_NAME,
   type ReadSession,
-  type SessionReader as SessionReaderInstance,
+  type SessionReader,
+  /** @deprecated use SessionReader */
+  type SessionReaderInstance,
   type SessionReaderOptions,
 } from "./session-reader.js";

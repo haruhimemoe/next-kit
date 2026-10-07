@@ -80,6 +80,12 @@ export type SessionReaderOptions = {
  * banned user is still returned (bannedAt set): refusing them is requireSession's job. */
 export type SessionReader = { getSession: (headers: Headers) => Promise<ReadSession | null> };
 
+/** @deprecated use {@link SessionReader}. 0.12.2 freed the `SessionReader` name for this type
+ * (session.ts's old `SessionReader`, the better-auth instance shape, is now `OsuAuthInstance`),
+ * so the barrel no longer needs to export this one under the `SessionReaderInstance` alias — but
+ * bb/packs/pools import exactly that name, so it stays as a deprecated alias. */
+export type SessionReaderInstance = SessionReader;
+
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
 /** The hub's origin, refusing anything but https (plain http only for localhost): the refresh
