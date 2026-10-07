@@ -43,14 +43,29 @@ export const PROFILE = (id: number) => ({
   country: { code: "AU" },
 });
 
+/** makeAuth's hub-only overrides: cookieDomain and trustedOrigins for the identity tests, or a
+ * different baseURL to go with them. Spelled out rather than lifted from createOsuAuth's own
+ * (generic) parameter type, which widens createOsuAuth's return type for every caller. */
+export type MakeAuthOverrides = {
+  baseURL?: string;
+  cookieDomain?: string;
+  trustedOrigins?: string[];
+};
+
 /**
  * @function makeAuth
  * @param db {Db} the test database
  * @param client {MongoClient} its client
  * @param hooks {OsuAuthHooks} the app's hooks
+ * @param overrides {MakeAuthOverrides} hub-only extras (cookieDomain, trustedOrigins, baseURL)
  * @returns an osu! better-auth instance on that database
  */
-export const makeAuth = (db: Db, client: MongoClient, hooks: OsuAuthHooks = {}) =>
+export const makeAuth = (
+  db: Db,
+  client: MongoClient,
+  hooks: OsuAuthHooks = {},
+  overrides: MakeAuthOverrides = {},
+) =>
   createOsuAuth({
     clientId: TEST_OSU_APP_ENV.OSU_CLIENT_ID,
     clientSecret: TEST_OSU_APP_ENV.OSU_CLIENT_SECRET,
@@ -60,6 +75,7 @@ export const makeAuth = (db: Db, client: MongoClient, hooks: OsuAuthHooks = {}) 
     client,
     markerCookie: MARKER,
     hooks,
+    ...overrides,
   });
 
 type Auth = ReturnType<typeof makeAuth>;
@@ -71,11 +87,17 @@ export const cookiesFrom = (response: Response): string =>
     .map((cookie) => cookie.split(";")[0])
     .join("; ");
 
-/** A request to better-auth's API. */
-export const authRequest = (path: string, cookie = "", method = "GET", body?: unknown) =>
-  new Request(`${BASE}/api/auth/${path}`, {
+/** A request to better-auth's API, against `base` (default BASE). */
+export const authRequest = (
+  path: string,
+  cookie = "",
+  method = "GET",
+  body?: unknown,
+  base: string = BASE,
+) =>
+  new Request(`${base}/api/auth/${path}`, {
     method,
-    headers: { cookie, origin: BASE, "content-type": "application/json" },
+    headers: { cookie, origin: base, "content-type": "application/json" },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
 
@@ -83,27 +105,36 @@ export const authRequest = (path: string, cookie = "", method = "GET", body?: un
  * @function signInWithOsu
  * @param auth {Auth} the instance
  * @param profile {Record<string, unknown>} what osu!'s /me returns
+ * @param base {string} the instance's own baseURL (default BASE; pass the hub's own baseURL
+ *        when the instance was built with a different one)
  * @returns {Promise<Response>} the callback's answer (a redirect with the session cookies)
  */
 export const signInWithOsu = async (
   auth: Auth,
   profile: Record<string, unknown>,
+  base: string = BASE,
 ): Promise<Response> => {
   const start = await auth.handler(
-    authRequest("sign-in/social", "", "POST", {
-      provider: OSU_PROVIDER_ID,
-      callbackURL: "/admin",
-      errorCallbackURL: "/signin?next=%2Fadmin",
-    }),
+    authRequest(
+      "sign-in/social",
+      "",
+      "POST",
+      {
+        provider: OSU_PROVIDER_ID,
+        callbackURL: "/admin",
+        errorCallbackURL: "/signin?next=%2Fadmin",
+      },
+      base,
+    ),
   );
   const { url } = (await start.json()) as { url: string };
   const target = new URL(url);
   expect(target.searchParams.get("code_challenge_method")).toBe("S256");
-  expect(target.searchParams.get("redirect_uri")).toBe(`${BASE}/api/auth/callback/osu`);
+  expect(target.searchParams.get("redirect_uri")).toBe(`${base}/api/auth/callback/osu`);
   osu.profile = profile;
   const state = target.searchParams.get("state") ?? "";
   return auth.handler(
-    new Request(`${BASE}/api/auth/callback/osu?code=abc&state=${state}`, {
+    new Request(`${base}/api/auth/callback/osu?code=abc&state=${state}`, {
       headers: { cookie: cookiesFrom(start) },
     }),
   );

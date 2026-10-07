@@ -8,10 +8,12 @@
  *       sign-in page with ?error=<code>. The readable signed-in marker cookie follows the
  *       session: set with it, cleared on sign-out or a get-session that finds none. The app's
  *       hooks guard user, account and session creation. Moved from pools (src/lib/auth.ts);
- *       packs lacked accountLinking and onAPIError.
+ *       packs lacked accountLinking and onAPIError. cookieDomain (hub only) puts every
+ *       better-auth cookie, OAuth state and PKCE too, on the parent domain: safe only because
+ *       OAuth starts and ends on the hub. Sessions last 30 days with a 1-day updateAge.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Sep 28, 2026
+ * @modified Tue Oct 6, 2026
  */
 
 import { type BetterAuthOptions, betterAuth } from "better-auth";
@@ -21,7 +23,13 @@ import { genericOAuth } from "better-auth/plugins";
 import type { Db, MongoClient } from "mongodb";
 import { markerMaxAge } from "../auth-react/marker.js";
 import { DEFAULT_SIGN_IN_PATH } from "../server/safe-next.js";
-import { OSU_PROVIDER_ID, OSU_USER_FIELDS, osuProvider, withoutTokens } from "./osu.js";
+import {
+  IDENTITY_USER_FIELDS,
+  OSU_PROVIDER_ID,
+  OSU_USER_FIELDS,
+  osuProvider,
+  withoutTokens,
+} from "./osu.js";
 
 /** Extra fields on user rows, as better-auth's user.additionalFields takes them. */
 export type UserFields = NonNullable<NonNullable<BetterAuthOptions["user"]>["additionalFields"]>;
@@ -44,6 +52,12 @@ export type OsuAuthHooks = {
   beforeSessionCreate?: (session: AuthRow) => Promise<boolean | undefined>;
 };
 
+/** How long a session lasts, and how often it extends on a get-session: 30 days, refreshed
+ * once a day. Satellites that only see a request every few days still extend it, through
+ * createSessionReader's ping to the hub. */
+export const SESSION_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 30;
+export const SESSION_UPDATE_AGE_SECONDS = 60 * 60 * 24;
+
 /** createOsuAuth's options. */
 export type OsuAuthOptions<F extends UserFields = NoFields> = {
   /** The osu! OAuth app. */
@@ -55,8 +69,14 @@ export type OsuAuthOptions<F extends UserFields = NoFields> = {
   /** The app's database, and the client it's on (for the adapter). */
   db: Db;
   client: MongoClient;
-  /** The signed-in marker cookie's name, like "pools-signed-in". */
+  /** The marker cookie's name: "pools-signed-in" (0.11 apps) or SHARED_MARKER_COOKIE (hub). */
   markerCookie: string;
+  /** Hub only: puts every better-auth cookie (session, OAuth state, PKCE) on this parent
+   * domain, like ".haruhime.moe". Unset for a single-DB app's own cookies. */
+  cookieDomain?: string;
+  /** Satellite origins the hub's sign-in/callback may redirect back to (better-auth's
+   * trustedOrigins). */
+  trustedOrigins?: string[];
   /** Where errors with no page to return to land (default /signin). */
   signInPath?: string;
   hooks?: OsuAuthHooks;
@@ -73,7 +93,8 @@ const guard =
 /**
  * @function createOsuAuth
  * @param options {OsuAuthOptions<F>} osu! credentials, better-auth URL and secret, the
- *        database, the marker cookie, the sign-in page, the hooks and extra user fields
+ *        database, the marker cookie, the cookie domain and trusted origins (hub only), the
+ *        sign-in page, the hooks and extra user fields
  * @returns the better-auth instance (use `typeof` it with inferAdditionalFields on the client)
  */
 export const createOsuAuth = <F extends UserFields = NoFields>({
@@ -84,6 +105,8 @@ export const createOsuAuth = <F extends UserFields = NoFields>({
   db,
   client,
   markerCookie,
+  cookieDomain,
+  trustedOrigins,
   signInPath = DEFAULT_SIGN_IN_PATH,
   hooks = {},
   userFields,
@@ -93,6 +116,7 @@ export const createOsuAuth = <F extends UserFields = NoFields>({
     sameSite: "lax" as const,
     secure: baseURL.startsWith("https://"),
     httpOnly: false,
+    ...(cookieDomain ? { domain: cookieDomain } : {}),
   };
   const beforeUser = guard(hooks.beforeUserCreate);
   const beforeAccount = guard(hooks.beforeAccountCreate);
@@ -100,17 +124,28 @@ export const createOsuAuth = <F extends UserFields = NoFields>({
   return betterAuth({
     baseURL,
     secret,
+    trustedOrigins,
     database: mongodbAdapter(db, { client, transaction: false }),
     // These fields must accept input: better-auth 1.7 drops `input: false` fields from the OAuth
     // profile too. So no client may call /update-user: identity only ever comes from osu!.
     disabledPaths: ["/update-user"],
+    session: { expiresIn: SESSION_EXPIRES_IN_SECONDS, updateAge: SESSION_UPDATE_AGE_SECONDS },
+    advanced: {
+      crossSubDomainCookies: cookieDomain
+        ? { enabled: true as const, domain: cookieDomain }
+        : { enabled: false as const },
+    },
     account: {
       // `<osuId>@osu.local` belongs to whoever osu! says has that id.
       accountLinking: { trustedProviders: [OSU_PROVIDER_ID], requireLocalEmailVerified: false },
     },
     onAPIError: { errorURL: new URL(signInPath, baseURL).toString() },
     user: {
-      additionalFields: { ...OSU_USER_FIELDS, ...userFields } as typeof OSU_USER_FIELDS & F,
+      additionalFields: {
+        ...OSU_USER_FIELDS,
+        ...IDENTITY_USER_FIELDS,
+        ...userFields,
+      } as typeof OSU_USER_FIELDS & typeof IDENTITY_USER_FIELDS & F,
     },
     databaseHooks: {
       user: {

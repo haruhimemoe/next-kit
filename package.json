@@ -1,6 +1,6 @@
 {
   "name": "@haruhimemoe/next-kit",
-  "version": "0.11.1",
+  "version": "0.12.0",
   "description": "The Next.js plumbing the haruhime.moe tools share: JSON route helpers, rate limits and budgets in MongoDB, bearer machine auth, zod env parsing, a connect-once MongoDB client with safe index builds, better-auth with osu! sign-in, the signed-in marker and account store for the browser, SEO: metadata, robots.txt, sitemaps, JSON-LD and llms.txt, and per-app API keys and the /api/v1 guard.",
   "keywords": [
     "nextjs",
@@ -77,6 +77,10 @@
     "./vcs": {
       "types": "./dist/vcs/index.d.ts",
       "default": "./dist/vcs/index.js"
+    },
+    "./check/migrate-identity": {
+      "types": "./dist/check/migrate-identity.d.ts",
+      "default": "./dist/check/migrate-identity.js"
     },
     "./package.json": "./package.json"
   },

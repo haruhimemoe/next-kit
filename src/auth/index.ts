@@ -14,10 +14,13 @@ export {
   type OsuAuth,
   type OsuAuthHooks,
   type OsuAuthOptions,
+  SESSION_EXPIRES_IN_SECONDS,
+  SESSION_UPDATE_AGE_SECONDS,
   type UserFields,
 } from "./create.js";
 export { AUTH_INDEX_SPECS, AUTH_INDEXES } from "./indexes.js";
 export {
+  IDENTITY_USER_FIELDS,
   OSU_PROVIDER_ID,
   OSU_USER_FIELDS,
   type OsuProviderOptions,
@@ -27,8 +30,20 @@ export {
 } from "./osu.js";
 export {
   getOsuUser,
+  getSessionUser,
   type OsuSession,
   type OsuSessionUser,
+  requireAdmin,
+  requireSession,
+  type SatelliteSessionReader,
   type SessionReader,
+  type SessionSource,
   toSessionUser,
 } from "./session.js";
+export {
+  createSessionReader,
+  DEFAULT_SESSION_COOKIE_NAME,
+  type ReadSession,
+  type SessionReader as SessionReaderInstance,
+  type SessionReaderOptions,
+} from "./session-reader.js";

@@ -60,8 +60,12 @@ export {
 } from "./rate-limit.js";
 export {
   DEFAULT_SIGN_IN_PATH,
+  type HubSignInUrlOptions,
+  hubSignInUrl,
   MAX_NEXT_LENGTH,
+  type SafeAbsoluteNextOptions,
   type SafeNextOptions,
+  safeAbsoluteNext,
   safeNextPath,
   signInHref,
 } from "./safe-next.js";

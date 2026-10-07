@@ -5,9 +5,21 @@
  *       none), the genericOAuth provider config (identify + public, PKCE, profile refreshed on
  *       every sign-in), and dropping OAuth tokens from account writes. Moved from packs and
  *       pools (src/lib/auth.ts, src/constants/auth.ts).
+ *
+ *       0.12: IDENTITY_USER_FIELDS adds the identity database's own fields (locale,
+ *       notificationPrefs, bannedAt, banReason, limits, discordId, discordUsername; section 3).
+ *       They're `input: false`: nothing a client sends ever sets them (requireSession reads
+ *       bannedAt, a future admin route or the Discord link flow in 0.13 writes the rest
+ *       straight through the adapter, bypassing better-auth's own field input). createOsuAuth
+ *       merges these into every instance's additionalFields unconditionally; a single-DB 0.11
+ *       app that never writes them just carries five always-empty columns, which costs
+ *       nothing, and keeps the hub and every satellite reading the same user shape. App-only
+ *       fields (packs' `system`) stay out of this list: they move to an app-side profile
+ *       collection keyed by userId, since the identity user is shared across apps (CHANGELOG
+ *       has packs' migration note).
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Sep 28, 2026
+ * @modified Tue Oct 6, 2026
  */
 
 import { OSU_OAUTH, OSU_SIGN_IN_SCOPES, toOsuUser } from "@haruhimemoe/osu/shapes";
@@ -21,6 +33,20 @@ export const OSU_USER_FIELDS = {
   username: { type: "string", required: true },
   avatarUrl: { type: "string", required: false },
   countryCode: { type: "string", required: false },
+} as const;
+
+/** The identity database's own fields (section 3 of the identity spec): never set by a
+ * client, only by the server (an admin route, the Discord link flow, requireSession's read of
+ * bannedAt). `limits` is a free-form per-app override bag, stored as JSON text since
+ * better-auth's additionalFields has no object type. */
+export const IDENTITY_USER_FIELDS = {
+  locale: { type: "string", required: false, input: false },
+  notificationPrefs: { type: "string", required: false, input: false },
+  bannedAt: { type: "date", required: false, input: false },
+  banReason: { type: "string", required: false, input: false },
+  limits: { type: "string", required: false, input: false },
+  discordId: { type: "string", required: false, input: false },
+  discordUsername: { type: "string", required: false, input: false },
 } as const;
 
 /**

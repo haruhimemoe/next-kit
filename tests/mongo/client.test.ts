@@ -3,10 +3,12 @@
  * @desc createMongo against the in-memory MongoDB: packs' cases (tests/integration/lib/db.test.ts:
  *       the database name, one connect for racing callers, one client for better-auth and
  *       Mongoose, a fresh client after closeDb, the 5 s timeout) and pools' (a failed start-up
- *       check isn't cached and runs again on the next connect).
+ *       check isn't cached and runs again on the next connect). 0.12: identityDbName gives a
+ *       second database on the same client, onConnect receives it, and a single-DB app's
+ *       getIdentityDb() throws.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Sep 28, 2026
+ * @modified Tue Oct 6, 2026
  */
 
 import { afterAll, describe, expect, inject, it, vi } from "vitest";
@@ -37,7 +39,7 @@ describe("createMongo", () => {
     await Promise.all([connectDb(), connectDb(), connectDb()]);
     expect(getModelConnection().readyState).toBe(1);
     expect(onConnect).toHaveBeenCalledTimes(1);
-    expect(onConnect).toHaveBeenCalledWith(getDb(), getMongoClient());
+    expect(onConnect).toHaveBeenCalledWith({ db: getDb(), client: getMongoClient() });
   });
 
   it("shares one client between better-auth and mongoose", async () => {
@@ -88,5 +90,41 @@ describe("createMongo", () => {
     expect(lazy.getMongoClient().options.maxPoolSize).toBe(2);
     expect(uri).toHaveBeenCalledTimes(1);
     return lazy.closeDb();
+  });
+
+  it("stays single-DB by default: getIdentityDb throws without identityDbName", async () => {
+    await connectDb();
+    expect(() => mongo.getIdentityDb()).toThrow(/identityDbName/);
+  });
+});
+
+describe("createMongo with identityDbName", () => {
+  const identityOnConnect = vi.fn(async () => {});
+  const hub = createMongo({
+    dbName: "packs",
+    identityDbName: "identity",
+    globalKey: "__nextKitTestHubMongo",
+    uri: () => inject("mongoUri"),
+    onConnect: identityOnConnect,
+  });
+
+  afterAll(hub.closeDb);
+
+  it("gives a second database on the same client, with no second connection", async () => {
+    await hub.connectDb();
+    expect(hub.getDb().databaseName).toBe("packs");
+    expect(hub.getIdentityDb().databaseName).toBe("identity");
+    expect(hub.getIdentityDb().client).toBe(hub.getMongoClient());
+  });
+
+  it("passes identityDb to onConnect", async () => {
+    await hub.closeDb();
+    identityOnConnect.mockClear();
+    await hub.connectDb();
+    expect(identityOnConnect).toHaveBeenCalledWith({
+      db: hub.getDb(),
+      identityDb: hub.getIdentityDb(),
+      client: hub.getMongoClient(),
+    });
   });
 });

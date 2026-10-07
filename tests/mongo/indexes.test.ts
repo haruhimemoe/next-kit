@@ -11,8 +11,11 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  buildIdentityIndexes,
   defineCollections,
   ensureIndexes,
+  IDENTITY_INDEX_SPECS,
+  IDENTITY_INDEXES,
   type IndexSpec,
   indexName,
   isDuplicateKeyError,
@@ -124,6 +127,43 @@ describe("indexName and ttlIndex", () => {
       key: { expiresAt: 1 },
       expireAfterSeconds: 0,
     });
+  });
+});
+
+describe("buildIdentityIndexes", () => {
+  it("builds the four identity indexes on an identity database", async () => {
+    const report = await buildIdentityIndexes(db());
+    expect(report).toEqual({
+      built: [
+        IDENTITY_INDEXES.userOsuId,
+        IDENTITY_INDEXES.sessionToken,
+        IDENTITY_INDEXES.sessionTtl,
+        IDENTITY_INDEXES.accountKey,
+      ],
+      skipped: [],
+    });
+    expect(await indexNamed("user", IDENTITY_INDEXES.userOsuId)).toMatchObject({ unique: true });
+    expect(await indexNamed("session", IDENTITY_INDEXES.sessionToken)).toMatchObject({
+      unique: true,
+    });
+    expect(await indexNamed("session", IDENTITY_INDEXES.sessionTtl)).toMatchObject({
+      expireAfterSeconds: 0,
+    });
+    expect(await indexNamed("account", IDENTITY_INDEXES.accountKey)).toMatchObject({
+      unique: true,
+    });
+  });
+
+  it("names each spec after IDENTITY_INDEXES and marks the session token secret", () => {
+    expect(IDENTITY_INDEX_SPECS.map((spec) => indexName(spec))).toEqual([
+      IDENTITY_INDEXES.userOsuId,
+      IDENTITY_INDEXES.sessionToken,
+      IDENTITY_INDEXES.sessionTtl,
+      IDENTITY_INDEXES.accountKey,
+    ]);
+    expect(
+      IDENTITY_INDEX_SPECS.find((spec) => spec.collection === "session" && spec.unique),
+    ).toMatchObject({ secret: true });
   });
 });
 
