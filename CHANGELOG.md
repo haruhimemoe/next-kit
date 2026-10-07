@@ -4,7 +4,7 @@ All notable changes to `@haruhimemoe/next-kit` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased / 0.12.0]
+## [0.12.0] - 2026-10-06
 
 ### Added
 - Identity core (breaking for every app — see below): `mongo`'s `createMongo` gains `identityDbName`/`getIdentityDb()` so the hub reads an `identity` database on the same client, `buildIdentityIndexes` builds its four indexes, `auth`'s `createOsuAuth` gains `cookieDomain`/`trustedOrigins` for the hub (every better-auth cookie, including OAuth state and PKCE, on the parent domain) and a 30-day session with a 1-day `updateAge`, `createSessionReader` reads a satellite's session with zero database writes (raw cookie verification, no `betterAuth()` instance) and pings the hub to refresh a session past `updateAge`, `getSessionUser`/`requireSession`/`requireAdmin` read either source and refuse a banned user, `server`'s `safeAbsoluteNext` is the hub's exact-hostname allowlist for a satellite's absolute `next` (it returns the normalized URL), `hubSignInUrl` builds a satellite's link to the hub's sign-in page through the same allowlist, and `check`'s `next-kit migrate-identity` merges `bb`/`packs`/`pools` users into `identity` by `osuId` (dry run by default).
