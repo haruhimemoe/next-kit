@@ -124,10 +124,11 @@ export const IDENTITY_INDEXES = Object.freeze({
   sessionToken: "identity_session_token_unique",
   sessionTtl: "identity_session_expiresAt_ttl",
   accountKey: "identity_account_providerId_accountId_unique",
+  userDiscordId: "identity_user_discordId_unique",
 });
 
 /** The identity database's own indexes: one user per osu! id, one session per token plus its
- * TTL, and one account row per provider link. Pass to ensureIndexes against the hub's
+ * TTL, one account row per provider link, and (0.13) one user per linked Discord id. Pass to ensureIndexes against the hub's
  * identity database only. */
 export const IDENTITY_INDEX_SPECS: readonly IndexSpec[] = Object.freeze([
   { collection: "user", key: { osuId: 1 }, name: IDENTITY_INDEXES.userOsuId, unique: true },
@@ -149,6 +150,13 @@ export const IDENTITY_INDEX_SPECS: readonly IndexSpec[] = Object.freeze([
     key: { providerId: 1, accountId: 1 },
     name: IDENTITY_INDEXES.accountKey,
     unique: true,
+  },
+  {
+    collection: "user",
+    key: { discordId: 1 },
+    name: IDENTITY_INDEXES.userDiscordId,
+    unique: true,
+    partialFilterExpression: { discordId: { $type: "string" } },
   },
 ]);
 

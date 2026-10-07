@@ -131,7 +131,7 @@ describe("indexName and ttlIndex", () => {
 });
 
 describe("buildIdentityIndexes", () => {
-  it("builds the four identity indexes on an identity database", async () => {
+  it("builds the five identity indexes on an identity database", async () => {
     const report = await buildIdentityIndexes(db());
     expect(report).toEqual({
       built: [
@@ -139,6 +139,7 @@ describe("buildIdentityIndexes", () => {
         IDENTITY_INDEXES.sessionToken,
         IDENTITY_INDEXES.sessionTtl,
         IDENTITY_INDEXES.accountKey,
+        IDENTITY_INDEXES.userDiscordId,
       ],
       skipped: [],
     });
@@ -152,6 +153,19 @@ describe("buildIdentityIndexes", () => {
     expect(await indexNamed("account", IDENTITY_INDEXES.accountKey)).toMatchObject({
       unique: true,
     });
+    expect(await indexNamed("user", IDENTITY_INDEXES.userDiscordId)).toMatchObject({
+      unique: true,
+      partialFilterExpression: { discordId: { $type: "string" } },
+    });
+  });
+
+  it("lets many users go unlinked but only one hold a Discord id", async () => {
+    await buildIdentityIndexes(db());
+    const users = db().collection("user");
+    await users.insertMany([{ osuId: 1 }, { osuId: 2 }, { osuId: 3, discordId: "42" }]);
+    await expect(users.insertOne({ osuId: 4, discordId: "42" })).rejects.toMatchObject({
+      code: 11000,
+    });
   });
 
   it("names each spec after IDENTITY_INDEXES and marks the session token secret", () => {
@@ -160,6 +174,7 @@ describe("buildIdentityIndexes", () => {
       IDENTITY_INDEXES.sessionToken,
       IDENTITY_INDEXES.sessionTtl,
       IDENTITY_INDEXES.accountKey,
+      IDENTITY_INDEXES.userDiscordId,
     ]);
     expect(
       IDENTITY_INDEX_SPECS.find((spec) => spec.collection === "session" && spec.unique),
