@@ -8,12 +8,9 @@
  *       sign-in page with ?error=<code>. The readable signed-in marker cookie follows the
  *       session: set with it, cleared on sign-out or a get-session that finds none. The app's
  *       hooks guard user, account and session creation. Moved from pools (src/lib/auth.ts);
- *       packs lacked accountLinking and onAPIError.
- *
- *       0.12: cookieDomain (hub only, ".haruhime.moe") puts every better-auth cookie, including
- *       OAuth state and PKCE, on the parent domain; safe only because OAuth starts and ends on
- *       the hub. trustedOrigins passes straight through. Sessions are now 30 days, 1-day
- *       updateAge (createSessionReader pings the hub to refresh satellite-only visitors).
+ *       packs lacked accountLinking and onAPIError. cookieDomain (hub only) puts every
+ *       better-auth cookie, OAuth state and PKCE too, on the parent domain: safe only because
+ *       OAuth starts and ends on the hub. Sessions last 30 days with a 1-day updateAge.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
  * @modified Tue Oct 6, 2026
