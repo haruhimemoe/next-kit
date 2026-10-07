@@ -8,7 +8,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { ALL_SCOPES, hasScope, normalizeScopes } from "../../src/api-keys/scopes.js";
+import { ALL_SCOPES, hasScope, normalizeScopes, storedScopes } from "../../src/api-keys/scopes.js";
 
 describe("hasScope", () => {
   it("matches a granted scope and * matches all", () => {
@@ -34,5 +34,14 @@ describe("normalizeScopes", () => {
     expect(() => normalizeScopes(["Bad Name"])).toThrow(TypeError);
     expect(() => normalizeScopes(["admin"], ["read", "write"])).toThrow(TypeError);
     expect(normalizeScopes(["*", "read"], ["read"])).toEqual(["*", "read"]);
+  });
+});
+
+describe("storedScopes", () => {
+  it("reads missing as * and a bad field as nothing, without throwing", () => {
+    expect(storedScopes(undefined)).toEqual([ALL_SCOPES]);
+    expect(storedScopes([])).toEqual([]);
+    expect(storedScopes("*")).toEqual([]);
+    expect(storedScopes(["read", 3])).toEqual(["read"]);
   });
 });

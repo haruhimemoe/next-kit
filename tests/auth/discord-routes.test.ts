@@ -220,6 +220,11 @@ describe("unlink", () => {
     expect(doc?.discordUsername).toBeUndefined();
   });
 
+  it("refuses a GET unlink", async () => {
+    const get = new Request(`${HUB}/api/account/discord`);
+    expect((await routes.unlink(get)).status).toBe(405);
+  });
+
   it("refuses cross-site and signed-out unlinks", async () => {
     const foreign = post("/api/account/discord", { "sec-fetch-site": "cross-site" });
     expect((await routes.unlink(foreign)).status).toBe(403);

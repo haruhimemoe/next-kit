@@ -169,6 +169,7 @@ export const createDiscordLinkRoutes = ({
 
   const unlink = async (req: Request): Promise<Response> => {
     if (!config) return notFound();
+    if (req.method !== "POST") return jsonError(405, "Use POST.");
     const refused = crossSite(req, config);
     if (refused) return refused;
     const user = await currentUser(req);

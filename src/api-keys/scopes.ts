@@ -45,3 +45,16 @@ export const normalizeScopes = (
   }
   return unique;
 };
+
+/**
+ * @function storedScopes
+ * @param scopes {unknown} a stored doc's scopes field
+ * @returns {string[]} ["*"] when the field is missing (a pre-0.13 key); otherwise its string
+ *          entries only, never throwing, so a bad doc grants less instead of failing the request
+ */
+export const storedScopes = (scopes: unknown): string[] =>
+  scopes === undefined || scopes === null
+    ? [ALL_SCOPES]
+    : Array.isArray(scopes)
+      ? scopes.filter((scope): scope is string => typeof scope === "string")
+      : [];

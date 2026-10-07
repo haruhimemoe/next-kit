@@ -21,7 +21,7 @@ import {
   hashApiKey,
   isApiKeyFormat,
 } from "./format.js";
-import { normalizeScopes } from "./scopes.js";
+import { normalizeScopes, storedScopes } from "./scopes.js";
 
 /** The collection every app keeps its keys in. */
 export const API_KEYS_COLLECTION = "api_keys";
@@ -75,7 +75,7 @@ const toInfo = (doc: ApiKeyDoc): ApiKeyInfo => ({
   prefix: doc.prefix,
   createdAt: doc.createdAt.toISOString(),
   lastUsedAt: doc.lastUsedAt ? doc.lastUsedAt.toISOString() : null,
-  scopes: normalizeScopes(doc.scopes),
+  scopes: storedScopes(doc.scopes),
 });
 
 /**
@@ -143,7 +143,7 @@ export const createApiKeyStore = ({
       // Filter on the hash too, so a regenerate in between isn't stamped with this use.
       await collectionRef.updateOne({ _id: doc._id, hash }, { $set: { lastUsedAt: new Date(at) } });
     };
-    return { userId: doc.userId.toString(), stamp, scopes: normalizeScopes(doc.scopes) };
+    return { userId: doc.userId.toString(), stamp, scopes: storedScopes(doc.scopes) };
   };
 
   return {
