@@ -11,13 +11,15 @@
  *       0.12: buildIdentityIndexes builds the identity database's own indexes (user osuId
  *       unique, session token unique plus TTL, account provider+id unique). Call it only from
  *       the hub: a satellite's Atlas user is read-only on identity and an index build would
- *       fail (or, worse, must never be allowed to succeed) there.
+ *       fail (or, worse, must never be allowed to succeed) there. 0.14: it also builds the inbox's
+       indexes (inboxIndexSpecs from next-kit/inbox).
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
  * @modified Tue Oct 6, 2026
  */
 
 import type { Db, Document } from "mongodb";
+import { inboxIndexSpecs } from "../inbox/specs.js";
 import { isDuplicateKeyError } from "./duplicate.js";
 
 /** One index to build. */
@@ -163,7 +165,7 @@ export const IDENTITY_INDEX_SPECS: readonly IndexSpec[] = Object.freeze([
 /**
  * @function buildIdentityIndexes
  * @param identityDb {Db} the hub's identity database (never a satellite's read-only one)
- * @returns {Promise<IndexReport>} IDENTITY_INDEX_SPECS built, or skipped and logged
+ * @returns {Promise<IndexReport>} IDENTITY_INDEX_SPECS and (0.14) the inbox's built, or skipped
  */
 export const buildIdentityIndexes = (identityDb: Db): Promise<IndexReport> =>
-  ensureIndexes(identityDb, IDENTITY_INDEX_SPECS);
+  ensureIndexes(identityDb, [...IDENTITY_INDEX_SPECS, ...inboxIndexSpecs]);

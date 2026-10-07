@@ -10,6 +10,7 @@
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { inboxIndexSpecs } from "../../src/inbox/specs.js";
 import {
   buildIdentityIndexes,
   defineCollections,
@@ -131,7 +132,7 @@ describe("indexName and ttlIndex", () => {
 });
 
 describe("buildIdentityIndexes", () => {
-  it("builds the five identity indexes on an identity database", async () => {
+  it("builds the five identity indexes and the inbox's on an identity database", async () => {
     const report = await buildIdentityIndexes(db());
     expect(report).toEqual({
       built: [
@@ -140,6 +141,7 @@ describe("buildIdentityIndexes", () => {
         IDENTITY_INDEXES.sessionTtl,
         IDENTITY_INDEXES.accountKey,
         IDENTITY_INDEXES.userDiscordId,
+        ...inboxIndexSpecs.map((spec) => indexName(spec)),
       ],
       skipped: [],
     });
