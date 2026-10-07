@@ -4,7 +4,8 @@
  *       with their own user/account/session/api_keys rows, merged into one identity database by
  *       osuId (earliest createdAt wins), with userId references rewritten, old sessions
  *       dropped, API keys copied with scopes ["*"], and --drop-old cleanup. Dry run by default
- *       writes nothing.
+ *       writes nothing. Idempotent: a group matching an existing identity user merges into it
+ *       instead of inserting, and a second --execute run inserts nothing new.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
  * @modified Tue Oct 6, 2026
@@ -199,15 +200,58 @@ describe("migrateIdentity (--execute)", () => {
     expect(pick?.by.toHexString()).toBe(report.idMap[`bb:${early._id.toHexString()}`]);
   });
 
-  it("refuses to merge twice, and refuses --drop-old before a merge", async () => {
+  it("refuses --drop-old before a merge, but a second merge is idempotent (no new inserts)", async () => {
     await seed();
     const apps: MigrateAppSpec[] = [{ id: "bb", db: appDb("bb") }];
     await expect(
       migrateIdentity(apps, identityDb, { dryRun: false, dropOld: true }),
     ).rejects.toThrow(/migrate first/);
     expect(await appDb("bb").listCollections({ name: "account" }).toArray()).toHaveLength(1);
-    await migrateIdentity(apps, identityDb, { dryRun: false });
-    await expect(migrateIdentity(apps, identityDb, { dryRun: false })).rejects.toThrow(/twice/);
+
+    const first = await migrateIdentity(apps, identityDb, { dryRun: false });
+    expect(first.usersWritten).toBe(1);
     expect(await identityDb.collection("user").countDocuments()).toBe(1);
+
+    const second = await migrateIdentity(apps, identityDb, { dryRun: false });
+    expect(second.usersWritten).toBe(0);
+    expect(second.usersMerged).toBe(1);
+    expect(second.accountsCopied).toBe(0);
+    expect(second.apiKeysCopied).toBe(0);
+    expect(await identityDb.collection("user").countDocuments()).toBe(1);
+    expect(await identityDb.collection("account").countDocuments()).toBe(1);
+  });
+
+  it("merges a source user into an existing identity user that signed in on the hub directly", async () => {
+    const hubUser = {
+      _id: new ObjectId(),
+      osuId: 3,
+      username: "hub-user",
+      createdAt: new Date("2026-05-01"),
+    };
+    await identityDb.collection("user").insertOne(hubUser);
+
+    const source = userRow(3, "source-name", new Date("2026-01-01"));
+    await appDb("bb").collection("user").insertOne(source);
+    await appDb("bb").collection("account").insertOne({
+      _id: new ObjectId(),
+      userId: source._id,
+      providerId: "osu",
+      accountId: "3",
+    });
+
+    const apps: MigrateAppSpec[] = [{ id: "bb", db: appDb("bb") }];
+    const report = await migrateIdentity(apps, identityDb, { dryRun: false });
+
+    expect(report.usersWritten).toBe(0);
+    expect(report.usersMerged).toBe(1);
+    expect(await identityDb.collection("user").countDocuments()).toBe(1);
+    const merged = await identityDb.collection("user").findOne({ osuId: 3 });
+    // identity's own fields are never overwritten...
+    expect(merged?.username).toBe("hub-user");
+    expect(merged?._id).toEqual(hubUser._id);
+    // ...but a field missing from the identity user (email, only on the source) is filled in.
+    expect(merged?.email).toBe(source.email);
+    expect(report.idMap[`bb:${source._id.toHexString()}`]).toBe(hubUser._id.toHexString());
+    expect(report.accountsCopied).toBe(1);
   });
 });

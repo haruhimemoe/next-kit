@@ -6,10 +6,15 @@
  *       caller lists per app, drops each app's old sessions (everyone signs in again once), and
  *       optionally drops the old per-app auth collections entirely once every app has cut over
  *       (`dropOld`: a separate drop-only run, after satellites switch to createSessionReader).
- *       Dry run by default: nothing is written until `dryRun: false`, and a dry run reports the
- *       same counts the real run would. The merge refuses a non-empty identity (no double
- *       merge), and `dropOld` refuses an empty one (nothing dropped before it's copied). About 3 real users across
- *       bb/packs/pools: a printed plan is enough, no UI.
+ *       Idempotent: the hub is live, so identity already holds real users who signed in there
+ *       directly. When a source group's osuId matches an existing identity user, that identity
+ *       user wins outright (its _id, its fields never overwritten, only its missing fields
+ *       filled from the source), and nothing new is inserted for it. Accounts dedupe by
+ *       providerId+accountId, API keys by hash, both against identity's own existing rows, so a
+ *       second `--execute` run inserts nothing new. Dry run by default: nothing is written until
+ *       `dryRun: false`, and a dry run reports the same counts the real run would. `dropOld`
+ *       refuses an empty identity (nothing dropped before it's copied) and is always its own,
+ *       separate run. About 3 real users across bb/packs/pools: a printed plan is enough, no UI.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
  * @modified Tue Oct 6, 2026
@@ -21,12 +26,12 @@ import { API_KEYS_COLLECTION } from "../api-keys/store.js";
 import {
   type AppUser,
   copyByUserId,
-  earliest,
   type MigrateAppSpec,
   type MigrateIdentityOptions,
   type MigrateReport,
   OLD_AUTH_COLLECTIONS,
   type RawUser,
+  resolveWinners,
 } from "./migrate-identity-types.js";
 
 export {
@@ -64,35 +69,24 @@ export const migrateIdentity = async (
     else groups.set(user.doc.osuId, [user]);
   }
 
-  const idMap: Record<string, string> = {};
-  const winners: { identityId: ObjectId; winner: AppUser; group: AppUser[] }[] = [];
-  for (const group of groups.values()) {
-    const winner = group.reduce(earliest);
-    const identityId = new ObjectId();
-    for (const user of group)
-      idMap[`${user.app}:${user.doc._id.toHexString()}`] = identityId.toHexString();
-    winners.push({ identityId, winner, group });
-  }
-
   const report: MigrateReport = {
     dryRun,
     dropOld,
     usersSeen: allUsers.length,
-    usersWritten: dropOld ? 0 : winners.length,
+    usersWritten: 0,
+    usersMerged: 0,
     accountsCopied: 0,
     sessionsDropped: 0,
     apiKeysCopied: 0,
     referencesRewritten: [],
     droppedCollections: [],
-    idMap: dropOld ? {} : idMap,
+    idMap: {},
   };
 
-  // A rerun would insert every winner again under fresh ids (and copy accounts and keys
-  // twice), so the merge refuses a non-empty identity, and --drop-old refuses an empty one
-  // (dropping the old auth collections before they were copied loses them).
-  const migrated = (await identityDb.collection("user").countDocuments({}, { limit: 1 })) > 0;
-
+  // --drop-old refuses an empty identity (dropping the old auth collections before they were
+  // copied loses them), and never touches `user`/groups below, so this check alone is enough.
   if (dropOld) {
+    const migrated = (await identityDb.collection("user").countDocuments({}, { limit: 1 })) > 0;
     if (!migrated) {
       throw new Error("migrate-identity --drop-old: identity has no users yet; migrate first");
     }
@@ -116,20 +110,28 @@ export const migrateIdentity = async (
     return report;
   }
 
-  if (migrated && !dryRun) {
-    throw new Error("migrate-identity: identity already has users; refusing to merge twice");
+  // The hub is live: identity may already hold real users who signed in there directly. A
+  // group's osuId matching one of them wins outright (missing fields filled, nothing
+  // overwritten, nothing inserted); otherwise the earliest-createdAt source user wins fresh.
+  const existingUsers = await identityDb.collection<RawUser>("user").find().toArray();
+  const { idMap, winners } = resolveWinners(groups, existingUsers);
+  report.idMap = idMap;
+  report.usersWritten = winners.filter((w) => w.isNew).length;
+  report.usersMerged = winners.length - report.usersWritten;
+
+  if (!dryRun) {
+    const toInsert = winners.filter((w) => w.isNew).map((w) => w.insertDoc as RawUser);
+    if (toInsert.length > 0) await identityDb.collection("user").insertMany(toInsert);
+    for (const winner of winners) {
+      if (winner.isNew || !winner.missing || Object.keys(winner.missing).length === 0) continue;
+      await identityDb
+        .collection("user")
+        .updateOne({ _id: winner.identityId }, { $set: winner.missing });
+    }
   }
 
-  // Write the winning identity user rows.
-  if (!dryRun && winners.length > 0) {
-    const rows = winners.map(({ identityId, winner }) => {
-      const { _id, ...fields } = winner.doc;
-      return { _id: identityId, ...fields };
-    });
-    await identityDb.collection("user").insertMany(rows);
-  }
-
-  // Copy accounts onto the winner, deduped by providerId+accountId.
+  // Copy accounts onto the winner, deduped by providerId+accountId against identity's own rows
+  // too, so a rerun copies nothing twice.
   report.accountsCopied = await copyByUserId(
     apps,
     identityDb,
@@ -178,7 +180,8 @@ export const migrateIdentity = async (
       : (await sessions.deleteMany({})).deletedCount;
   }
 
-  // Copy API keys onto the winner, scopes: ["*"] (0.13 splits real scopes per app).
+  // Copy API keys onto the winner, deduped by hash, scopes: ["*"] (0.13 splits real scopes per
+  // app).
   report.apiKeysCopied = await copyByUserId(
     apps,
     identityDb,
@@ -188,7 +191,7 @@ export const migrateIdentity = async (
       app: app.id,
       scopes: ["*"],
     }),
-    undefined,
+    (doc) => String(doc.hash),
     !dryRun,
   );
 

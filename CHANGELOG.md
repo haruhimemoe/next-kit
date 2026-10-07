@@ -4,6 +4,11 @@ All notable changes to `@haruhimemoe/next-kit` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.1] - 2026-10-06
+
+### Changed
+- `check`'s `next-kit migrate-identity` is idempotent now that the hub is live and `identity` holds real users who signed in there directly: a source group's osuId matching an existing identity user merges into it (that user's `_id` and fields win outright, only its own missing fields get filled from the source) instead of refusing on a non-empty identity. Accounts dedupe by `providerId`+`accountId` and API keys by `hash` against identity's own existing rows too, so a second `--execute` run inserts nothing new. `MigrateReport` gains `usersMerged`. `--drop-old` is unchanged: still its own run, still refusing while `identity` is empty.
+
 ## [0.12.0] - 2026-10-06
 
 ### Added
