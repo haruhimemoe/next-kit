@@ -4,16 +4,18 @@
  *       entry point, and runs one call from each. Run by `bun run test:dist` after a build.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Sun Oct 4, 2026
+ * @modified Tue Oct 6, 2026
  */
 
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
+import * as account from "../dist/account/index.js";
 import * as apiKeys from "../dist/api-keys/index.js";
 import * as auth from "../dist/auth/index.js";
 import * as authReact from "../dist/auth-react/index.js";
 import * as docs from "../dist/docs/index.js";
 import * as env from "../dist/env/index.js";
+import * as inbox from "../dist/inbox/index.js";
 import * as legal from "../dist/legal/index.js";
 import * as mongo from "../dist/mongo/index.js";
 import * as seo from "../dist/seo/index.js";
@@ -33,6 +35,8 @@ const ENTRIES = [
   "docs/files",
   "legal",
   "vcs",
+  "account",
+  "inbox",
 ];
 for (const entry of ENTRIES) {
   for (const file of ["index.js", "index.d.ts"]) {
@@ -126,4 +130,9 @@ assert.deepEqual(
   legal.legalEntries(legalSite).map((entry) => entry.slug),
   legal.LEGAL_SLUGS,
 );
+assert.equal(
+  account.appUrl({ id: "a", name: "a", baseUrl: "http://a.test", secretEnv: "S" }, "/x"),
+  null,
+);
+assert.equal(inbox.inboxIndexSpecs.length, 4);
 console.log("smoke: ok");

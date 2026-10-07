@@ -7,11 +7,12 @@
  *       nothing at runtime, and no source file passes 200 lines.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Oct 5, 2026
+ * @modified Tue Oct 6, 2026
  */
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { expect, it } from "vitest";
+import * as account from "../src/account/index.js";
 import * as apiKeys from "../src/api-keys/index.js";
 import * as auth from "../src/auth/index.js";
 import * as authReact from "../src/auth-react/index.js";
@@ -19,6 +20,7 @@ import * as migrateIdentity from "../src/check/migrate-identity.js";
 import * as docsFiles from "../src/docs/files/index.js";
 import * as docs from "../src/docs/index.js";
 import * as env from "../src/env/index.js";
+import * as inbox from "../src/inbox/index.js";
 import * as legal from "../src/legal/index.js";
 import * as mongo from "../src/mongo/index.js";
 import * as seo from "../src/seo/index.js";
@@ -40,6 +42,8 @@ const ENTRIES = [
   "docs/files",
   "legal",
   "vcs",
+  "account",
+  "inbox",
 ];
 /** Non-index entry points: exports map to a specific file, not <entry>/index.js. */
 const EXTRA_ENTRIES = { "check/migrate-identity": "check/migrate-identity" };
@@ -384,5 +388,37 @@ it("exports the documented vcs API", () => {
     "MAX_LIST_LIMIT",
     "createRevisionStore",
     "revisionIndexSpecs",
+  ]);
+});
+
+it("exports the documented account API", () => {
+  expect(Object.keys(account).sort()).toEqual([
+    "ACCOUNT_PATH",
+    "DELETE_RETRY_DELAYS_MS",
+    "FAN_OUT_TIMEOUT_MS",
+    "MIN_ACCOUNT_SECRET_BYTES",
+    "USER_ID_PATTERN",
+    "appUrl",
+    "createAccountHandlers",
+    "exportBundle",
+    "fanOut",
+    "secretFor",
+    "usableSecret",
+  ]);
+});
+
+it("exports the documented inbox API", () => {
+  expect(Object.keys(inbox).sort()).toEqual([
+    "INBOX_COLLECTIONS",
+    "INBOX_MAX_BODY_BYTES",
+    "INBOX_PATH",
+    "INVITE_LIMIT",
+    "NOTIFICATION_LIMIT",
+    "NOTIFICATION_TTL_SECONDS",
+    "createInboxClient",
+    "createInboxRoutes",
+    "createInboxStore",
+    "inboxIndexSpecs",
+    "matchApp",
   ]);
 });

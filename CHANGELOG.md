@@ -4,6 +4,15 @@ All notable changes to `@haruhimemoe/next-kit` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0] - 2026-10-06
+
+### Added
+- `account` (new subpath): account export and delete across apps. `createAccountHandlers` gives an app POST handlers for `/api/internal/account/{export,delete}` behind its own bearer secret (`ACCOUNT_FANOUT_SECRET`, at least 32 bytes), with a zod-checked `{ userId }` body and no-store answers. `fanOut` lets the hub call every registered app with that app's secret: https only (http on localhost), redirects never followed, a 10 s timeout, three tries for delete, and unset secrets reported as `not_configured`. `exportBundle` packs the results into one JSON download. Plus `secretFor`, `appUrl`, `usableSecret` and the `AccountApp` registry type.
+- `inbox` (new subpath): invites and notifications in the identity database. `createInboxStore` (invites upserted by id and held by one app, notifications with an unread filter, `markRead`, a 90-day TTL, `deleteFor` for account delete), `createInboxRoutes` for the hub's `/api/internal/inbox` (the matching secret picks the app, checked against every app with no early exit; another app's invite id is a 409), `createInboxClient` for apps, `matchApp` and `inboxIndexSpecs`.
+
+### Changed
+- `mongo`: `buildIdentityIndexes` also builds the inbox indexes.
+
 ## [0.13.0] - 2026-10-06
 
 ### Added

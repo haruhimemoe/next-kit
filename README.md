@@ -15,6 +15,8 @@ The Next.js server plumbing the haruhime.moe tools share. [packs.haruhime.moe](h
 - **`/docs`:** a content registry for an app's docs, guides and legal pages: sections, entries, app-made extra entries (like bb's tag pages), the path helpers a dynamic route needs, and `mdxToMarkdown` to turn bb-flavored MDX into plain Markdown. No runtime imports. **`/docs/files`:** reads the markdown files a registry's entries point at and reports drift between the registry and disk (node:fs).
 - **`/legal`:** the five-page legal convention (terms, privacy, your-privacy-rights, copyright, disclaimers). A `LegalSite` config, seven plain server-safe blocks (`LegalContact`, `DataWeKeep`, `Processors`, `YourRights`, `DmcaNotice`, `NoWarranty`, `Changes`) an app drops into its own legal MDX, `legalEntries` for the app's content registry, and `legalMarkdownTransform` so those blocks survive `mdxToMarkdown`'s `.md` mirrors and llms-full.txt instead of being dropped as unknown JSX.
 - **`/vcs`:** document history in MongoDB on top of `@haruhimemoe/vcs`: one line of revisions per document, saves merged onto whatever landed since their base, revert, diffs, and autosave pruning.
+- **`/account`:** account export and delete across every app. The hub fans out to each app with that app's own secret; each app serves two small handlers.
+- **`/inbox`:** invites and notifications in the shared identity database. The hub stores them; apps write through the hub.
 
 Every name, path, limit and message comes from the caller. There is no root entry point; import a subpath.
 
@@ -279,7 +281,7 @@ The command prints one `pass` or `FAIL` line per standard, names each missing fi
 | --- | --- |
 | `createMongo({ dbName, identityDbName?, globalKey, uri, maxPoolSize?, serverSelectionTimeoutMS?, onConnect? })` | `getMongoClient`, `getDb`, `getIdentityDb`, `getModelConnection`, `connectDb`, `connectedDb`, `closeDb`. 5 connections and a 5 s timeout by default; a failed connect is retried next call. `onConnect` takes one `{ db, identityDb?, client }` argument; `identityDb` is only present when `identityDbName` was given. Single-DB by default: leave `identityDbName` unset and `getIdentityDb()` throws instead of silently returning your own database. |
 | `ensureIndexes(db, specs)` | Builds each `IndexSpec` on its own and returns `{ built, skipped }`. A unique index that existing duplicates break is skipped and logged with the duplicate keys (never for `secret: true`). Never throws. |
-| `buildIdentityIndexes(identityDb)` | The hub's own four indexes on `identity`'s collections (user osuId, session token + TTL, account provider+id). Call it from the hub only; a satellite's Atlas user is read-only on `identity`. |
+| `buildIdentityIndexes(identityDb)` | The hub's own indexes on `identity`'s collections (user osuId and discordId, session token + TTL, account provider+id) plus the inbox's. Call it from the hub only; a satellite's Atlas user is read-only on `identity`. |
 | `ttlIndex(collection, field, seconds?, name?)`, `indexName(spec)` | A TTL index spec, and the name MongoDB gives an index. |
 | `defineCollections(names)` | Frozen collection-name constants; throws on an invalid or repeated name. |
 | `isDuplicateKeyError(error)`, `DUPLICATE_KEY` | E11000. |
@@ -453,6 +455,26 @@ Notes:
 
 Who may read a history, and the routes around it, stay the app's.
 
+### account
+
+| Export | What it does |
+| --- | --- |
+| `createAccountHandlers({ secret, export, delete, failures? })` | An app's two POST handlers for `/api/internal/account/{export,delete}`. Bearer `secret` (under 32 bytes counts as unset: 503), body `{ userId }`, export answers 200 JSON, delete 204. Every answer is no-store. |
+| `fanOut({ apps, op, userId, env, fetcher?, timeoutMs? })` | The hub's call to every app. `{ ok, results }` with one `{ id, ok, status, data?, error? }` per app. Errors: `not_configured`, `insecure_url`, `unreachable`, `redirect`, `app_error`, `bad_json`. |
+| `exportBundle(identity, results)` | `{ exportedAt, identity, apps }` for the download. |
+| `secretFor(app, env)`, `appUrl(app, path)`, `usableSecret(value)` | Registry helpers. |
+| `ACCOUNT_PATH`, `FAN_OUT_TIMEOUT_MS`, `DELETE_RETRY_DELAYS_MS`, `MIN_ACCOUNT_SECRET_BYTES`, `USER_ID_PATTERN` | `/api/internal/account`, 10 s, `[250, 1000]`, 32, a 24-hex id. |
+
+### inbox
+
+| Export | What it does |
+| --- | --- |
+| `createInboxStore(identityDb)` | `putInvite` (upsert by id; false when another app holds it), `invitesFor(osuId)` (sent or received, newest 100), `notify`, `notificationsFor(userId, { unreadOnly?, limit? })` (50 by default, 100 at most), `markRead(userId, ids)`, `deleteFor(userId, osuId)`. |
+| `createInboxRoutes({ store, apps, env, failures? })` | The hub's `post` for `/api/internal/inbox`. |
+| `createInboxClient({ hubUrl, secret })` | An app's `putInvite(invite)` and `notify({ userId, kind, title, href? })`. Throws when the hub refuses. |
+| `matchApp(token, apps, env)` | Which app a bearer belongs to. |
+| `INBOX_COLLECTIONS`, `inboxIndexSpecs`, `NOTIFICATION_TTL_SECONDS` | `invite` and `notification`, their indexes, 90 days. |
+
 ## Identity (0.12)
 
 0.12 is the identity core behind the shared hub login: `haruhime.moe` is the only app that runs osu! sign-in, every other app (`bb`, `packs`, `pools`) reads the hub's session instead of its own. Two modes:
@@ -539,6 +561,75 @@ const apiKeys = createApiKeyStore({ prefix: "hpk_", db: getDb, scopes: ["read", 
 await apiKeys.issue(user.id, ["read"]); // a read-only key; an undeclared name throws TypeError
 export const POST = withApiKey(handler, { scope: "write" }); // a read-only key gets 403
 ```
+
+## Account export and delete (0.14)
+
+The hub owns "Download my data" and "Delete my account". Each app keeps its own data and serves two handlers the hub calls.
+
+Each app gets its own secret (`openssl rand -base64 32`, at least 32 bytes). The hub holds all of them; each app holds only its own:
+
+| App | Hub env var | App env var |
+| --- | --- | --- |
+| bb | `ACCOUNT_SECRET_BB` | `ACCOUNT_FANOUT_SECRET` |
+| packs | `ACCOUNT_SECRET_PACKS` | `ACCOUNT_FANOUT_SECRET` |
+| pools | `ACCOUNT_SECRET_POOLS` | `ACCOUNT_FANOUT_SECRET` |
+
+In each app:
+
+```ts
+// app/api/internal/account/[op]/route.ts
+const handlers = createAccountHandlers({
+  secret: () => process.env.ACCOUNT_FANOUT_SECRET,
+  export: async (userId) => ({ packs: await packsOwnedBy(userId) }),
+  delete: async (userId) => { await deletePacksOf(userId); await apiKeys.deleteFor(userId); },
+});
+export const POST = (req: Request, { params }: { params: Promise<{ op: string }> }) =>
+  params.then(({ op }) => op === "export" ? handlers.export(req) : op === "delete" ? handlers.delete(req) : new Response(null, { status: 404 }));
+```
+
+On the hub:
+
+```ts
+const APPS = [
+  { id: "packs", name: "packs.haruhime.moe", baseUrl: "https://packs.haruhime.moe", secretEnv: "ACCOUNT_SECRET_PACKS" },
+  // bb, pools
+] as const;
+
+const report = await fanOut({ apps: APPS, op: "delete", userId: user.id, env: process.env });
+if (report.ok) { /* delete the identity user, its sessions and accounts */ }
+else { /* keep the user; show which apps failed so they can retry */ }
+
+const exported = await fanOut({ apps: APPS, op: "export", userId: user.id, env: process.env });
+return Response.json(exportBundle(identityRecord, exported.results), {
+  headers: { "Cache-Control": "no-store", "Content-Disposition": 'attachment; filename="haruhime-data.json"' },
+});
+```
+
+- Delete only removes the identity user when every app said yes. Delete tries each app three times; export tries once and still returns what it got.
+- An app whose secret is unset is skipped and reported `not_configured`, so delete refuses until it's set.
+- Only `https://` base URLs are called (`http://localhost` in dev), and redirects are never followed.
+- Put `refuseCrossSite` and the session check in front of the hub's `DELETE /api/account`, and the session check in front of `GET /api/account/export`.
+- Delete handlers must be safe to run twice.
+
+## Inbox (0.14)
+
+Invites and notifications live in the `identity` database so every app can show them. The hub writes; apps post to the hub with the same secret they use for account fan-out, and read `identity` directly with their read-only database user.
+
+```ts
+// hub: app/api/internal/inbox/route.ts
+const inbox = createInboxStore(async () => getIdentityDb());
+export const { post: POST } = createInboxRoutes({ store: inbox, apps: APPS, env: process.env });
+
+// an app
+const hub = createInboxClient({ hubUrl: process.env.HUB_URL!, secret: process.env.ACCOUNT_FANOUT_SECRET! });
+await hub.putInvite({ id: invite.id, from: 124493, to: 2, state: "pending", doc: invite });
+await hub.notify({ userId, kind: "invite", title: "You were invited to a team", href: "/invites" });
+```
+
+- The secret decides which app is writing. A body can't name an app, and an app can't overwrite an invite another app stored (409).
+- `href` is a path or an `https://` URL.
+- Notifications expire after 90 days. `buildIdentityIndexes` builds the inbox indexes.
+- On account delete, call `inbox.deleteFor(userId, osuId)`.
 
 ## Migration
 
