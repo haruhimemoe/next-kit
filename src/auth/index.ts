@@ -1,11 +1,12 @@
 /**
  * @file src/auth/index.ts
  * @desc @haruhimemoe/next-kit/auth: better-auth with osu! sign-in. createOsuAuth, the osu!
- *       provider pieces, the indexes better-auth's collections need, and reading the caller.
+ *       provider pieces, the indexes better-auth's collections need, reading the caller, and
+ *       (0.13) the hub's Discord link plus findUserByDiscordId.
  *       Server only.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Sep 28, 2026
+ * @modified Tue Oct 6, 2026
  */
 
 export {
@@ -18,6 +19,18 @@ export {
   SESSION_UPDATE_AGE_SECONDS,
   type UserFields,
 } from "./create.js";
+export {
+  DISCORD_SCOPES,
+  DISCORD_STATE_COOKIE,
+  type DiscordLinkConfig,
+  discordLinkConfig,
+} from "./discord.js";
+export { findUserByDiscordId } from "./discord-lookup.js";
+export {
+  createDiscordLinkRoutes,
+  type DiscordLinkOutcome,
+  type DiscordLinkRoutesOptions,
+} from "./discord-routes.js";
 export { AUTH_INDEX_SPECS, AUTH_INDEXES } from "./indexes.js";
 export {
   IDENTITY_USER_FIELDS,

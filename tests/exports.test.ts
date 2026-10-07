@@ -200,13 +200,18 @@ it("exports the documented auth API", () => {
       "AUTH_INDEXES",
       "AUTH_INDEX_SPECS",
       "DEFAULT_SESSION_COOKIE_NAME",
+      "DISCORD_SCOPES",
+      "DISCORD_STATE_COOKIE",
       "IDENTITY_USER_FIELDS",
       "OSU_PROVIDER_ID",
       "OSU_USER_FIELDS",
       "SESSION_EXPIRES_IN_SECONDS",
       "SESSION_UPDATE_AGE_SECONDS",
+      "createDiscordLinkRoutes",
       "createOsuAuth",
       "createSessionReader",
+      "discordLinkConfig",
+      "findUserByDiscordId",
       "getOsuUser",
       "getSessionUser",
       "osuProfileToUser",
@@ -301,6 +306,8 @@ it("exports the documented seo API", () => {
 it("exports the documented api-keys API", () => {
   expect(Object.keys(apiKeys).sort()).toMatchInlineSnapshot(`
     [
+      "ALL_SCOPES",
+      "API_INSUFFICIENT_SCOPE",
       "API_KEYS_COLLECTION",
       "API_KEY_BYTES",
       "API_KEY_DISPLAY_LENGTH",
@@ -315,8 +322,10 @@ it("exports the documented api-keys API", () => {
       "createApiKeyGuard",
       "createApiKeyStore",
       "generateApiKey",
+      "hasScope",
       "hashApiKey",
       "isApiKeyFormat",
+      "normalizeScopes",
     ]
   `);
 });
