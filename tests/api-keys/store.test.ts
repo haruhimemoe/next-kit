@@ -35,6 +35,7 @@ describe("issue", () => {
       prefix: key.slice(0, 12),
       createdAt: "2026-10-03T12:00:00.000Z",
       lastUsedAt: null,
+      scopes: ["*"],
     });
     const doc = await docs().findOne({ userId: new ObjectId(userId) });
     expect(doc?.hash).toBe(hashApiKey(key));
@@ -192,5 +193,39 @@ describe("deleteFor", () => {
     await store.issue(userId);
     expect(await store.deleteFor(userId)).toBe(1);
     expect(await docs().countDocuments()).toBe(0);
+  });
+});
+
+describe("scopes", () => {
+  const scoped = createApiKeyStore({
+    prefix: "hpl_",
+    db: connectedDb,
+    now: () => clock,
+    scopes: ["read", "write"],
+  });
+
+  it("reads a legacy doc without scopes as *", async () => {
+    const { key } = await store.issue(userId);
+    await docs().updateOne({ userId: new ObjectId(userId) }, { $unset: { scopes: 1 } });
+    expect((await store.authenticate(key))?.scopes).toEqual(["*"]);
+    expect((await store.info(userId))?.scopes).toEqual(["*"]);
+  });
+
+  it("round-trips a scoped issue", async () => {
+    const { key, apiKey } = await scoped.issue(userId, ["read"]);
+    expect(apiKey.scopes).toEqual(["read"]);
+    expect((await scoped.authenticate(key))?.scopes).toEqual(["read"]);
+    expect((await docs().findOne({ userId: new ObjectId(userId) }))?.scopes).toEqual(["read"]);
+  });
+
+  it("refuses an undeclared scope and writes nothing", async () => {
+    await expect(scoped.issue(userId, ["admin"])).rejects.toThrow(TypeError);
+    expect(await docs().countDocuments()).toBe(0);
+  });
+
+  it("refuses a bad declared list", () => {
+    expect(() => createApiKeyStore({ prefix: "hpl_", db: connectedDb, scopes: [] })).toThrow(
+      TypeError,
+    );
   });
 });

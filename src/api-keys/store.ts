@@ -5,9 +5,10 @@
  *       stored. Two issues racing still leave one key (unique userId; the loser updates).
  *       authenticate gives the owner's user id; who that user is stays the app's call.
  *       lastUsedAt is written at most once an hour. Moved from packs (src/services/api-keys.ts).
+ *       0.13: each key carries scopes (default ["*"]; a doc without the field reads as ["*"]).
  * @author David @dvhsh (https://dvh.sh)
  * @created Sat Oct 3, 2026
- * @modified Sat Oct 3, 2026
+ * @modified Tue Oct 6, 2026
  */
 
 import { type Db, ObjectId } from "mongodb";
@@ -20,6 +21,7 @@ import {
   hashApiKey,
   isApiKeyFormat,
 } from "./format.js";
+import { normalizeScopes } from "./scopes.js";
 
 /** The collection every app keeps its keys in. */
 export const API_KEYS_COLLECTION = "api_keys";
@@ -27,11 +29,16 @@ export const API_KEYS_COLLECTION = "api_keys";
 export const LAST_USED_INTERVAL_MS = 60 * 60 * 1000;
 
 /** A key as account pages show it. */
-export type ApiKeyInfo = { prefix: string; createdAt: string; lastUsedAt: string | null };
+export type ApiKeyInfo = {
+  prefix: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+  scopes: string[];
+};
 /** A freshly issued key: the full key, shown once, and its info. */
 export type ApiKeyCreated = { key: string; apiKey: ApiKeyInfo };
 /** A key that matched: its owner, and stamp() to record the use once the owner checks out. */
-export type ApiKeyMatch = { userId: string; stamp: () => Promise<void> };
+export type ApiKeyMatch = { userId: string; stamp: () => Promise<void>; scopes: string[] };
 
 /** createApiKeyStore's options. */
 export type ApiKeyStoreOptions = {
@@ -39,12 +46,14 @@ export type ApiKeyStoreOptions = {
   db: () => Promise<Db>;
   collection?: string;
   now?: () => number;
+  /** The app's declared scope list; issue refuses any other name. */
+  scopes?: readonly string[];
 };
 
 /** What createApiKeyStore returns. */
 export type ApiKeyStore = {
   prefix: string;
-  issue: (userId: string) => Promise<ApiKeyCreated>;
+  issue: (userId: string, scopes?: readonly string[]) => Promise<ApiKeyCreated>;
   info: (userId: string) => Promise<ApiKeyInfo | null>;
   revoke: (userId: string) => Promise<boolean>;
   authenticate: (key: string) => Promise<ApiKeyMatch | null>;
@@ -59,12 +68,14 @@ type ApiKeyDoc = {
   hash: string;
   createdAt: Date;
   lastUsedAt?: Date;
+  scopes?: string[];
 };
 
 const toInfo = (doc: ApiKeyDoc): ApiKeyInfo => ({
   prefix: doc.prefix,
   createdAt: doc.createdAt.toISOString(),
   lastUsedAt: doc.lastUsedAt ? doc.lastUsedAt.toISOString() : null,
+  scopes: normalizeScopes(doc.scopes),
 });
 
 /**
@@ -81,9 +92,9 @@ export const apiKeyIndexSpecs = (collection: string = API_KEYS_COLLECTION): Inde
 /**
  * @function createApiKeyStore
  * @param options {ApiKeyStoreOptions} the app prefix, the database, the collection (default
- *        api_keys) and a clock (default Date.now)
+ *        api_keys), a clock (default Date.now) and the declared scopes
  * @returns {ApiKeyStore} the key operations for that app
- * @throws {TypeError} on a bad prefix
+ * @throws {TypeError} on a bad prefix or a bad declared scope
  */
 export const createApiKeyStore = ({
   prefix,
@@ -91,15 +102,23 @@ export const createApiKeyStore = ({
   collection = API_KEYS_COLLECTION,
   // Read per call, so fake timers in app tests move it.
   now = () => Date.now(),
+  scopes: declared,
 }: ApiKeyStoreOptions): ApiKeyStore => {
   assertApiKeyPrefix(prefix);
+  if (declared) normalizeScopes(declared);
   const keys = async () => (await db()).collection<ApiKeyDoc>(collection);
 
-  const issue = async (userId: string): Promise<ApiKeyCreated> => {
+  const issue = async (userId: string, scopes?: readonly string[]): Promise<ApiKeyCreated> => {
+    const granted = normalizeScopes(scopes, declared);
     const key = generateApiKey(prefix);
     const filter = { userId: new ObjectId(userId) };
     const update = {
-      $set: { prefix: apiKeyDisplay(key), hash: hashApiKey(key), createdAt: new Date(now()) },
+      $set: {
+        prefix: apiKeyDisplay(key),
+        hash: hashApiKey(key),
+        createdAt: new Date(now()),
+        scopes: granted,
+      },
       $unset: { lastUsedAt: 1 as const },
     };
     const upsert = async () =>
@@ -124,7 +143,7 @@ export const createApiKeyStore = ({
       // Filter on the hash too, so a regenerate in between isn't stamped with this use.
       await collectionRef.updateOne({ _id: doc._id, hash }, { $set: { lastUsedAt: new Date(at) } });
     };
-    return { userId: doc.userId.toString(), stamp };
+    return { userId: doc.userId.toString(), stamp, scopes: normalizeScopes(doc.scopes) };
   };
 
   return {

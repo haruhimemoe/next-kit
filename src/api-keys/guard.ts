@@ -6,9 +6,10 @@
  *       showing whichever runs out first. Every answer gets RateLimit-* headers and no-store, a
  *       thrown error included (JSON 500). No CORS headers: the API is for servers and bots.
  *       Moved from packs (src/lib/api-auth.ts) with the user lookup and messages passed in.
+ *       0.13: withApiKey(handler, { scope }) answers 403 insufficient_scope to a key without it.
  * @author David @dvhsh (https://dvh.sh)
  * @created Sat Oct 3, 2026
- * @modified Sat Oct 3, 2026
+ * @modified Tue Oct 6, 2026
  */
 
 import { clientIp, rateLimitSubject } from "../server/client-ip.js";
@@ -22,6 +23,7 @@ import {
   unlimited,
 } from "../server/rate-limit.js";
 import { apiKeyToken } from "./format.js";
+import { hasScope } from "./scopes.js";
 import type { ApiKeyStore } from "./store.js";
 
 /** The standard limits every haruhime API uses (fixed windows). */
@@ -42,6 +44,12 @@ export type ApiLimits = { api: RateLimitRule; apiWrite: RateLimitRule; authFail:
 /** The 500 message when a key lookup or handler throws. */
 export const API_SERVER_ERROR = "Something went wrong on our end. Try again in a minute.";
 
+/** The 403 message when a key lacks the scope a handler needs. */
+export const API_INSUFFICIENT_SCOPE = "This API key doesn't have the scope this request needs.";
+
+/** Per-handler options: the scope a key needs (any scope when unset). */
+export type ApiKeyHandlerOptions = { scope?: string };
+
 /** createApiKeyGuard's options. */
 export type ApiKeyGuardOptions<Caller> = {
   store: Pick<ApiKeyStore, "authenticate">;
@@ -49,7 +57,7 @@ export type ApiKeyGuardOptions<Caller> = {
   /** Who a key's user is; null for a deleted or system account (answers 401). */
   resolveCaller: (userId: string) => Promise<Caller | null>;
   /** missing: no key sent (name the prefix); invalid: a bad, revoked or replaced key. */
-  messages: { missing: string; invalid: string; serverError?: string };
+  messages: { missing: string; invalid: string; serverError?: string; insufficientScope?: string };
   limits?: ApiLimits;
   now?: () => number;
 };
@@ -62,8 +70,9 @@ const finish = (response: Response, limit: RateLimitResult): Response =>
 /**
  * @function createApiKeyGuard
  * @param options {ApiKeyGuardOptions<Caller>} store, limiter, caller lookup, messages
- * @returns {Function} withApiKey(handler): a route handler that runs handler(request, caller,
- *          context) only for a good key under its limits
+ * @returns {Function} withApiKey(handler, { scope }): a route handler that runs
+ *          handler(request, caller, context) only for a good key under its limits (and with
+ *          the scope, when one is given)
  */
 export const createApiKeyGuard = <Caller extends { id: string }>({
   store,
@@ -79,26 +88,30 @@ export const createApiKeyGuard = <Caller extends { id: string }>({
     console.error("api: request failed", error);
     return finish(jsonError(500, messages.serverError ?? API_SERVER_ERROR), limit);
   };
-  const lookUp = async (token: string | null): Promise<Caller | null> => {
+  const lookUp = async (
+    token: string | null,
+  ): Promise<{ caller: Caller; scopes: string[] } | null> => {
     const match = token ? await store.authenticate(token) : null;
     const caller = match ? await resolveCaller(match.userId) : null;
+    if (!match || !caller) return null;
     // Stamp only a key whose owner checks out (packs' order).
-    if (caller) await match?.stamp();
-    return caller;
+    await match.stamp();
+    return { caller, scopes: match.scopes };
   };
 
   return <C = unknown>(
     handler: (request: Request, caller: Caller, context: C) => Promise<Response>,
+    { scope }: ApiKeyHandlerOptions = {},
   ) =>
     async (request: Request, context: C): Promise<Response> => {
       const token = apiKeyToken(request.headers);
-      let caller: Caller | null;
+      let found: { caller: Caller; scopes: string[] } | null;
       try {
-        caller = await lookUp(token);
+        found = await lookUp(token);
       } catch (error) {
         return serverError(error, uncounted());
       }
-      if (!caller) {
+      if (!found) {
         const failures = await limiter.hit(
           limits.authFail,
           rateLimitSubject(clientIp(request.headers)),
@@ -109,6 +122,7 @@ export const createApiKeyGuard = <Caller extends { id: string }>({
           : jsonError(401, messages.missing);
         return finish(withHeaders(body, { "WWW-Authenticate": "Bearer" }), failures);
       }
+      const { caller, scopes } = found;
       const requests = await limiter.hit(limits.api, caller.id);
       if (!requests.allowed) return finish(tooManyRequests(requests), requests);
       let shown = requests;
@@ -117,6 +131,10 @@ export const createApiKeyGuard = <Caller extends { id: string }>({
         if (!writes.allowed) return finish(tooManyRequests(writes), writes);
         // Show whichever counter runs out first.
         if (writes.remaining < requests.remaining) shown = writes;
+      }
+      if (scope !== undefined && !hasScope(scopes, scope)) {
+        const message = messages.insufficientScope ?? API_INSUFFICIENT_SCOPE;
+        return finish(jsonError(403, message, "insufficient_scope"), shown);
       }
       try {
         return finish(await handler(request, caller, context), shown);

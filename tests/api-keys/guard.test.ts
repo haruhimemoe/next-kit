@@ -5,7 +5,7 @@
  *       RateLimit headers and no-store, thrown handlers become JSON 500s.
  * @author David @dvhsh (https://dvh.sh)
  * @created Sat Oct 3, 2026
- * @modified Sat Oct 3, 2026
+ * @modified Tue Oct 6, 2026
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -18,7 +18,9 @@ const GOOD = `hpl_${"A".repeat(43)}`;
 const NOW = Date.parse("2026-10-03T12:00:10.000Z");
 const limiter = createRateLimiter({ db: connectedDb, now: () => NOW });
 const stamp = vi.fn(async () => {});
-const authenticate = vi.fn(async (key: string) => (key === GOOD ? { userId: "u1", stamp } : null));
+const authenticate = vi.fn(async (key: string) =>
+  key === GOOD ? { userId: "u1", stamp, scopes: ["*"] } : null,
+);
 const withApiKey = createApiKeyGuard({
   store: { authenticate },
   limiter,
@@ -68,7 +70,7 @@ describe("createApiKeyGuard", () => {
 
   it("401s a key whose user is gone", async () => {
     stamp.mockClear();
-    authenticate.mockResolvedValueOnce({ userId: "deleted-user", stamp });
+    authenticate.mockResolvedValueOnce({ userId: "deleted-user", stamp, scopes: ["*"] });
     expect((await call(ok, { key: GOOD })).status).toBe(401);
     expect(stamp).not.toHaveBeenCalled();
   });
@@ -131,5 +133,39 @@ describe("createApiKeyGuard", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("RateLimit-Limit")).toBe("60");
     quiet.mockRestore();
+  });
+});
+
+describe("scopes", () => {
+  const writeOnly = withApiKey(async () => Response.json({ ok: true }), { scope: "write" });
+
+  it("403s a key without the handler's scope, with headers", async () => {
+    authenticate.mockResolvedValueOnce({ userId: "u1", stamp, scopes: ["read"] });
+    const response = await call(writeOnly, { key: GOOD, method: "POST" });
+    expect(response.status).toBe(403);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect((await response.json()).error.code).toBe("insufficient_scope");
+  });
+
+  it("passes a key with the scope or with *", async () => {
+    authenticate.mockResolvedValueOnce({ userId: "u1", stamp, scopes: ["read", "write"] });
+    expect((await call(writeOnly, { key: GOOD })).status).toBe(200);
+    expect((await call(writeOnly, { key: GOOD })).status).toBe(200);
+  });
+
+  it("uses the app's own message when given", async () => {
+    const custom = createApiKeyGuard({
+      store: { authenticate },
+      limiter,
+      now: () => NOW,
+      resolveCaller: async (id) => ({ id }),
+      messages: { missing: "m", invalid: "i", insufficientScope: "Read-only key." },
+    });
+    authenticate.mockResolvedValueOnce({ userId: "u1", stamp, scopes: ["read"] });
+    const response = await call(
+      custom(async () => Response.json({}), { scope: "write" }),
+      { key: GOOD },
+    );
+    expect((await response.json()).error.message).toBe("Read-only key.");
   });
 });
