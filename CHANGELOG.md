@@ -4,6 +4,12 @@ All notable changes to `@haruhimemoe/next-kit` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.1] - 2026-10-09
+
+### Fixed
+- `auth-react`: `AccountMenu`'s "Sign in" link is 44px tall on a touchscreen (it was 20px).
+- `i18n/next-intl`: `createI18nMiddleware`'s app step gets next-intl's response and may be async; when it answers with its own Response, next-intl's Set-Cookie is copied on so the locale rewrite cookie survives.
+
 ## [0.15.0] - 2026-10-06
 
 ### Added

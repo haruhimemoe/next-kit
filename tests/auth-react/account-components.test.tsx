@@ -55,6 +55,14 @@ describe("AccountMenu", () => {
     );
   });
 
+  it("gives the sign-in link a 44px touch target on a coarse pointer", () => {
+    render(<AccountMenu account={{ status: "signed-out" }} {...wiring} />);
+    const classes = screen.getByRole("link", { name: "Sign in" }).className.split(" ");
+    expect(classes).toEqual(
+      expect.arrayContaining(["inline-flex", "items-center", "coarse:min-h-11"]),
+    );
+  });
+
   it("opens the avatar menu with the links and Sign out", async () => {
     const { container } = render(<AccountMenu account={PEPPY} {...wiring} />);
     expect(container.querySelector("img")?.getAttribute("src")).toBe("https://a.ppy.sh/2");

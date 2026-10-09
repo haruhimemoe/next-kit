@@ -72,7 +72,8 @@ export function AccountMenu({
         className={textClasses({
           tone: "muted",
           bold: true,
-          className: "transition-colors hover:text-c1",
+          className:
+            "inline-flex min-h-6 items-center transition-colors hover:text-c1 coarse:min-h-11",
         })}
       >
         {signInLabel}
