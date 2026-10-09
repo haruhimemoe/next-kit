@@ -4,6 +4,14 @@ All notable changes to `@haruhimemoe/next-kit` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - 2026-10-09
+
+### Added
+- `pwa` (new subpath): install support for an app. `pwaManifest` for `app/manifest.ts` (standalone, scoped to the origin, colored like the page, 192, 512 and maskable icons), `pwaViewport` (theme color, color scheme, zoom left on), `pwaMetadata` (`appleWebApp` for the iOS home screen), `serviceWorkerResponse` for `app/sw.js/route.ts` and `ServiceWorkerRegister`. The service worker caches only Next's hashed build files and answers a page that can't load with an offline page in the app's colors; API, auth and HTML responses are never cached.
+
+### Changed
+- The optional `@haruhimemoe/ui` peer range is `>=0.14.0 <0.25.0` (it stopped at 0.18).
+
 ## [0.15.1] - 2026-10-09
 
 ### Fixed

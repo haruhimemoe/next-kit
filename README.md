@@ -495,6 +495,46 @@ Who may read a history, and the routes around it, stay the app's.
 | `createI18nMiddleware({ config, cookieDomain?, next? })` | next-intl's middleware with the `"as-needed"` prefix and the `NEXT_LOCALE` cookie (on `cookieDomain` when set). A redirect is returned as is; otherwise `next(req, intlResponse)` runs (it may be async) and its Response wins, with next-intl's `Set-Cookie` copied onto it. |
 | `mergeMessages(...catalogs)`, `resolveRequestConfig(options, requested)` | The merge and the locale pick on their own. |
 
+### pwa
+
+| Export | What it does |
+| --- | --- |
+| `PwaApp` | `{ name, shortName, description, hue, scheme? }`: what the helpers need. `scheme` is `"dark"` (default) or `"light"`. |
+| `pwaManifest(app, { shortcuts?, categories?, icons? })` | The default export of `app/manifest.ts`: standalone, `id`, `start_url` and `scope` at `/`, theme and background in the page color. |
+| `PWA_ICONS` | `/icon.svg` plus `/icon-192.png`, `/icon-512.png` and `/icon-maskable-512.png` from `public/`. |
+| `pwaViewport(app)` | The root layout's `viewport`: device width, zoom left on, `themeColor` and `colorScheme`. |
+| `pwaMetadata(app)` | `applicationName` and `appleWebApp` (full screen from the iOS home screen). Spread over the layout's metadata. |
+| `serviceWorkerResponse(app, { version, offlineTitle?, offlineMessage? })` | The `GET` of `app/sw.js/route.ts`. Caches `/_next/static/` after the first fetch and answers a page that fails to load with an offline page. Nothing else is touched: no API, auth or HTML response is cached. A new `version` drops the old caches. |
+| `serviceWorkerScript`, `offlineHtml` | The script and the offline page on their own. |
+| `ServiceWorkerRegister({ src?, enabled? })` | Registers `/sw.js` after load, in production builds only. Renders nothing. |
+| `surfaceColor(app)`, `textColor(app)`, `hslHex(h, s, l)` | The ui theme's b5 and c1 at the app's hue, as hex. |
+
+## PWA (0.16)
+
+Every haruhime app installs to a home screen and shows an offline page instead of the browser's error.
+
+```ts
+// src/constants/pwa.ts
+export const PWA: PwaApp = { name: "pools.haruhime.moe", shortName: "pools", description: "…", hue: 200 };
+
+// src/app/manifest.ts
+export default function manifest() {
+  return pwaManifest(PWA, { shortcuts: [{ name: "New pool", url: "/new" }] });
+}
+
+// src/app/sw.js/route.ts
+export const dynamic = "force-static";
+export const GET = () =>
+  serviceWorkerResponse(PWA, { version: process.env.VERCEL_GIT_COMMIT_SHA ?? "dev" });
+
+// src/app/layout.tsx
+export const metadata: Metadata = { ...siteMetadata(SEO_SITE), ...pwaMetadata(PWA) };
+export const viewport: Viewport = pwaViewport(PWA);
+// …and <ServiceWorkerRegister /> inside <body>.
+```
+
+Put `icon-192.png`, `icon-512.png` and `icon-maskable-512.png` in `public/`. The maskable icon keeps the logo inside the middle 80% on the page color.
+
 ## i18n (0.15)
 
 Locale negotiation needs nothing. The next-intl glue lives in its own subpath, so an app that doesn't install next-intl never loads or type-checks against it.

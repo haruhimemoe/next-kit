@@ -1,6 +1,6 @@
 {
   "name": "@haruhimemoe/next-kit",
-  "version": "0.15.1",
+  "version": "0.16.0",
   "description": "The Next.js plumbing the haruhime.moe tools share: JSON route helpers, rate limits and budgets in MongoDB, bearer machine auth, zod env parsing, a connect-once MongoDB client with safe index builds, better-auth with osu! sign-in, the signed-in marker and account store for the browser, SEO: metadata, robots.txt, sitemaps, JSON-LD and llms.txt, per-app API keys and the /api/v1 guard, account export/delete fan-out and the identity inbox, and locale negotiation with optional next-intl glue.",
   "keywords": [
     "nextjs",
@@ -95,6 +95,10 @@
       "types": "./dist/i18n/next-intl/index.d.ts",
       "default": "./dist/i18n/next-intl/index.js"
     },
+    "./pwa": {
+      "types": "./dist/pwa/index.d.ts",
+      "default": "./dist/pwa/index.js"
+    },
     "./check/migrate-identity": {
       "types": "./dist/check/migrate-identity.d.ts",
       "default": "./dist/check/migrate-identity.js"
@@ -129,7 +133,7 @@
   },
   "peerDependencies": {
     "@haruhimemoe/osu": "^0.2.0 || ^0.3.0 || ^0.4.0",
-    "@haruhimemoe/ui": "^0.14.0 || ^0.15.0 || ^0.16.0 || ^0.17.0 || ^0.18.0",
+    "@haruhimemoe/ui": ">=0.14.0 <0.25.0",
     "@haruhimemoe/vcs": "^0.1.0",
     "better-auth": "^1.7.5",
     "mongodb": "^7.6.0",

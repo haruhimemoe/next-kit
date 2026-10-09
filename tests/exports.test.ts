@@ -24,6 +24,7 @@ import * as i18n from "../src/i18n/index.js";
 import * as inbox from "../src/inbox/index.js";
 import * as legal from "../src/legal/index.js";
 import * as mongo from "../src/mongo/index.js";
+import * as pwa from "../src/pwa/index.js";
 import * as seo from "../src/seo/index.js";
 import * as server from "../src/server/index.js";
 import * as testing from "../src/testing/index.js";
@@ -47,6 +48,7 @@ const ENTRIES = [
   "inbox",
   "i18n",
   "i18n/next-intl",
+  "pwa",
 ];
 /** Non-index entry points: exports map to a specific file, not <entry>/index.js. */
 const EXTRA_ENTRIES = { "check/migrate-identity": "check/migrate-identity" };
@@ -95,6 +97,26 @@ it("keeps the browser entry point free of server code", () => {
     "@haruhimemoe/ui",
     "next/navigation.js",
     "react",
+  ]);
+});
+
+it("keeps the pwa entry point to react (the registrar's hook)", () => {
+  expect([...loads(new URL("../src/pwa/index.ts", import.meta.url))]).toEqual(["react"]);
+});
+
+it("exports the documented pwa API", () => {
+  expect(Object.keys(pwa).sort()).toEqual([
+    "PWA_ICONS",
+    "ServiceWorkerRegister",
+    "hslHex",
+    "offlineHtml",
+    "pwaManifest",
+    "pwaMetadata",
+    "pwaViewport",
+    "serviceWorkerResponse",
+    "serviceWorkerScript",
+    "surfaceColor",
+    "textColor",
   ]);
 });
 
