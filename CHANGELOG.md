@@ -4,6 +4,19 @@ All notable changes to `@haruhimemoe/next-kit` are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [0.16.1] - 2026-10-10
+
+### Fixed
+
+- `/testing`'s `setupMsw` fails unhandled requests under msw 3 too. msw 3 renamed `onUnhandledRequest` to `onUnhandledFrame` and ignores the old key, so the helper passes both.
+
+### Changed
+
+- The `@haruhimemoe/osu` peer range takes 0.5, 0.6 and 0.7 too, and `msw` takes 3 as well as 2.
+- CI runs CodeQL and a gitleaks scan of the full git history, and Dependabot covers dependencies and pinned actions. Dependencies are on their latest versions.
+
 ## [0.16.0] - 2026-10-09
 
 ### Added
@@ -180,7 +193,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `@haruhimemoe/next-kit/auth-react`: `createSignedInMarker`, `createAccountStore`, `useAccount`, `createAccount`, `RestoreSignedIn` and `osuSignIn`.
 - `@haruhimemoe/next-kit/testing`: `startMemoryMongo`, `setupTestDb`, `setupMsw` and the fake osu! app env.
 
-[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.10.0...HEAD
+[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.16.1...HEAD
+[0.16.1]: https://github.com/haruhimemoe/next-kit/compare/v0.16.0...v0.16.1
 [0.10.0]: https://github.com/haruhimemoe/next-kit/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/haruhimemoe/next-kit/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/haruhimemoe/next-kit/compare/v0.7.0...v0.8.0

@@ -82,7 +82,7 @@ export type SessionReader = { getSession: (headers: Headers) => Promise<ReadSess
 
 /** @deprecated use {@link SessionReader}. 0.12.2 freed the `SessionReader` name for this type
  * (session.ts's old `SessionReader`, the better-auth instance shape, is now `OsuAuthInstance`),
- * so the barrel no longer needs to export this one under the `SessionReaderInstance` alias — but
+ * so the barrel no longer needs to export this one under the `SessionReaderInstance` alias, but
  * bb/packs/pools import exactly that name, so it stays as a deprecated alias. */
 export type SessionReaderInstance = SessionReader;
 

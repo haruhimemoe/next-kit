@@ -40,7 +40,7 @@ export type DroppedCollection = { app: string; collection: string };
  * identity, never in the id map), winning identity rows written, winners that matched an
  * existing identity user instead (merged into it, filling only its missing fields),
  * accounts/keys copied, sessions dropped, references rewritten, old collections dropped, and the
- * full old-id-to-winner idMap (`"<appId>:<hex>"` -> the winning identity user id, hex — the
+ * full old-id-to-winner idMap (`"<appId>:<hex>"` -> the winning identity user id, hex: the
  * existing identity user's id when merged, otherwise a freshly minted one). */
 export type MigrateReport = {
   dryRun: boolean;
