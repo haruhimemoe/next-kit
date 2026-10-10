@@ -7,7 +7,7 @@
       "devDependencies": {
         "@biomejs/biome": "2.5.15",
         "@haruhimemoe/osu": "0.7.0",
-        "@haruhimemoe/ui": "0.24.0",
+        "@haruhimemoe/ui": "0.25.0",
         "@haruhimemoe/vcs": "0.1.0",
         "@testing-library/dom": "10.4.2",
         "@testing-library/react": "16.3.3",
@@ -30,14 +30,14 @@
         "zod": "4.6.5",
       },
       "peerDependencies": {
-        "@haruhimemoe/osu": "^0.2.0 || ^0.3.0 || ^0.4.0",
-        "@haruhimemoe/ui": ">=0.14.0 <0.25.0",
+        "@haruhimemoe/osu": "^0.2.0 || ^0.3.0 || ^0.4.0 || ^0.5.0 || ^0.6.0 || ^0.7.0",
+        "@haruhimemoe/ui": ">=0.14.0 <0.26.0",
         "@haruhimemoe/vcs": "^0.1.0",
         "better-auth": "^1.7.5",
         "mongodb": "^7.6.0",
         "mongodb-memory-server": "^11.3.0",
         "mongoose": "^9.10.2",
-        "msw": "^2.15.0",
+        "msw": "^2.15.0 || ^3.0.0",
         "next": "^16.3.6",
         "next-intl": "^4.14.0",
         "react": "^19.3.0",
@@ -149,7 +149,7 @@
 
     "@haruhimemoe/osu": ["@haruhimemoe/osu@0.7.0", "", { "peerDependencies": { "zod": "^4.0.16" } }, "sha512-eKO46jp7J6UnQTtQwXzpw8s6s/RUw7x+H8VPbToDuwlNL/iHW3NkO2z0dkqIzA33LfsRBT4XPNl4R4KKrsk5MQ=="],
 
-    "@haruhimemoe/ui": ["@haruhimemoe/ui@0.24.0", "", { "dependencies": { "tailwind-merge": "3.7.0" }, "peerDependencies": { "next": ">=16.0.0 <17", "react": ">=19.0.0", "react-dom": ">=19.0.0", "shiki": ">=4.5.0 <5", "tailwindcss": ">=4.1.0 <5" }, "optionalPeers": ["shiki"] }, "sha512-TSUnLg9ddRJowsAYR+FPaNdSDY7gi517f1I1DRmBCjDcW1C/bY/MuGGEzknPC0dH15+yfiKJJoBf5e7R5ZqtmQ=="],
+    "@haruhimemoe/ui": ["@haruhimemoe/ui@0.25.0", "", { "dependencies": { "tailwind-merge": "3.7.0" }, "peerDependencies": { "next": ">=16.0.0 <17", "react": ">=19.0.0", "react-dom": ">=19.0.0", "shiki": ">=4.5.0 <5", "tailwindcss": ">=4.1.0 <5" }, "optionalPeers": ["shiki"] }, "sha512-QaLnXeplJBuB8KN+hmHzu02rRa29PRAsXxIOOZPqJAywlV+foBcgDSQQ/Hi3JY3yIwVCfHOVCU+mgStD5YFK+g=="],
 
     "@haruhimemoe/vcs": ["@haruhimemoe/vcs@0.1.0", "", {}, "sha512-Zsas46sJyFv7EoWxYg5PHgYzN5sGm/LW9YmwTs5EXt7c3rwbelZLhOPpsiXijlUHYfS6Z71L69Egs/XBZD2YKA=="],
 

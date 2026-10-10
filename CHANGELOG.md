@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.17.1] - 2026-10-10
+
+### Changed
+
+- The `@haruhimemoe/ui` peer range takes 0.25.
+
 ## [0.17.0] - 2026-10-10
 
 ### Changed
@@ -203,7 +209,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `@haruhimemoe/next-kit/auth-react`: `createSignedInMarker`, `createAccountStore`, `useAccount`, `createAccount`, `RestoreSignedIn` and `osuSignIn`.
 - `@haruhimemoe/next-kit/testing`: `startMemoryMongo`, `setupTestDb`, `setupMsw` and the fake osu! app env.
 
-[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.17.0...HEAD
+[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.17.1...HEAD
+[0.17.1]: https://github.com/haruhimemoe/next-kit/compare/v0.17.0...v0.17.1
 [0.17.0]: https://github.com/haruhimemoe/next-kit/compare/v0.16.1...v0.17.0
 [0.16.1]: https://github.com/haruhimemoe/next-kit/compare/v0.16.0...v0.16.1
 [0.10.0]: https://github.com/haruhimemoe/next-kit/compare/v0.9.0...v0.10.0
