@@ -5,7 +5,7 @@
  *       @id helpers the metadata, sitemap and JSON-LD builders share.
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Sat Oct 10, 2026
  */
 
 /** One Open Graph image. A relative `url` resolves against the site's origin. */
@@ -53,7 +53,7 @@ export type Site = {
   parent?: { name: string; url: string };
 };
 
-/** The haruhime.moe organization the four sites share (A6: one entity, one @id). */
+/** haruhime.moe's own Organization, shared by its sites. Other apps pass their own `Organization`. */
 export const HARUHIME_ORG: Organization = {
   name: "haruhime.moe",
   url: "https://www.haruhime.moe",

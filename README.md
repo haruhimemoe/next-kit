@@ -148,6 +148,9 @@ export const SEO_SITE: Site = {
 };
 
 // src/app/layout.tsx: export const metadata = siteMetadata(SEO_SITE);
+
+// Not a haruhime.moe app? Pass your own organization instead of HARUHIME_ORG:
+// organization: { name: "Example", url: "https://example.org", logo: "https://example.org/logo.png" },
 // src/app/page.tsx:   export const metadata = homeMetadata(SEO_SITE);
 // src/app/search/page.tsx
 export const metadata = pageMetadata(SEO_SITE, { path: "/search", title: "Search osu! tournament mappools" });
@@ -303,7 +306,7 @@ The command prints one `pass` or `FAIL` line per standard, names each missing fi
 | `IDENTITY_USER_FIELDS` | The identity-only user fields (`locale`, `notificationPrefs`, `bannedAt`, `banReason`, `limits`, `discordId`, `discordUsername`), all `input: false`. Merged into every `createOsuAuth` instance's `additionalFields`, single-DB apps included. |
 | `osuProvider`, `osuProfileToUser`, `withoutTokens`, `OSU_PROVIDER_ID`, `OSU_USER_FIELDS` | The pieces `createOsuAuth` is built from. |
 | `discordLinkConfig(env, hubUrl)` | The Discord link's config from `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET`, with the redirect URI `${hubUrl}/api/account/discord/callback`. Null when either is unset: the feature is off. |
-| `createDiscordLinkRoutes({ config, identityDb, secret, currentUser, returnPath?, siteTitle?, fetcher?, now? })` | The hub's Discord link: `start` (POST), `callback` (GET) and `unlink` (POST). See [Discord link](#discord-link-013). |
+| `createDiscordLinkRoutes({ config, identityDb, secret, currentUser, returnPath?, siteTitle?, stateCookie?, fetcher?, now? })` | The hub's Discord link: `start` (POST), `callback` (GET) and `unlink` (POST). `siteTitle` defaults to the redirect URI's host, `stateCookie` to `DISCORD_STATE_COOKIE`. See [Discord link](#discord-link-013). |
 | `findUserByDiscordId(identityDb, discordId)` | The identity user who linked that Discord id, or null (nobody, or banned). Read-only, for bots and satellites. |
 | `DISCORD_SCOPES`, `DISCORD_STATE_COOKIE` | `["identify"]`, and the state cookie's name (`haruhime-discord-state`). |
 

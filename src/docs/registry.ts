@@ -1,13 +1,13 @@
 /**
  * @file src/docs/registry.ts
- * @desc The content registry every haruhime.moe site builds its docs, guides and legal pages
+ * @desc The content registry a site builds its docs, guides and legal pages
  *       from: a frozen list of sections, the entry shape each page fills in, the app-made extra
  *       entries a section's nav and search also carry (like bb's tag pages), and the validation
  *       that catches a bad slug, a duplicate, a made-up date or a blank title at build time
  *       instead of at a 404. Pure: no node: imports, so it runs anywhere.
  * @author David @dvhsh (https://dvh.sh)
  * @created Sun Oct 4, 2026
- * @modified Sun Oct 4, 2026
+ * @modified Sat Oct 10, 2026
  */
 
 /** A slug is lowercase words separated by single hyphens, like "make-a-pack". */
@@ -16,7 +16,7 @@ const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 /** A date is YYYY-MM-DD and a real calendar day. */
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-/** Every content section a haruhime.moe site can have, in the order it's shown. */
+/** The content sections a site can have, in the order they're shown. */
 export const CONTENT_SECTIONS = ["docs", "guides", "legal"] as const;
 
 /** One of `CONTENT_SECTIONS`. */

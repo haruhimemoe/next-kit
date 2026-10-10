@@ -9,7 +9,7 @@
  *       while config is null. Callers wrap start and callback with their rate limit.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Sat Oct 10, 2026
  */
 
 import { type Db, ObjectId } from "mongodb";
@@ -39,8 +39,10 @@ export type DiscordLinkRoutesOptions = {
   currentUser: (req: Request) => Promise<{ id: string } | null>;
   /** Where the callback lands, a same-site path (default "/account"). */
   returnPath?: string;
-  /** The hub's name, for refuseCrossSite's 403 (default "haruhime.moe"). */
+  /** The site's name, for refuseCrossSite's 403 (default: the redirect URI's host). */
   siteTitle?: string;
+  /** The state cookie's name (default DISCORD_STATE_COOKIE, "haruhime-discord-state"). */
+  stateCookie?: string;
   fetcher?: typeof fetch;
   now?: () => number;
 };
@@ -52,7 +54,6 @@ const TOKEN_URL = "https://discord.com/api/oauth2/token";
 const ME_URL = "https://discord.com/api/users/@me";
 const DISCORD_ID = /^\d{1,20}$/;
 const cookieAttributes = `Path=${DISCORD_STATE_PATH}; HttpOnly; Secure; SameSite=Lax`;
-const CLEAR_COOKIE = `${DISCORD_STATE_COOKIE}=; Max-Age=0; ${cookieAttributes}`;
 
 const redirect = (location: string, cookie?: string): Response => {
   const headers = new Headers({ Location: location, "Cache-Control": "no-store" });
@@ -73,17 +74,22 @@ export const createDiscordLinkRoutes = ({
   secret,
   currentUser,
   returnPath = "/account",
-  siteTitle = "haruhime.moe",
+  siteTitle,
+  stateCookie = DISCORD_STATE_COOKIE,
   fetcher = (input, init) => fetch(input, init),
   now = () => Date.now(),
 }: DiscordLinkRoutesOptions) => {
   if (safeNextPath(returnPath, { fallback: "" }) !== returnPath) {
     throw new TypeError("createDiscordLinkRoutes: returnPath must be a same-site path");
   }
+  const clearCookie = `${stateCookie}=; Max-Age=0; ${cookieAttributes}`;
   const notFound = () => jsonError(404, "Not found.");
   const users = async () => (await identityDb()).collection("user");
   const crossSite = (req: Request, c: DiscordLinkConfig) =>
-    refuseCrossSite(req, { siteUrl: c.redirectUri, siteTitle });
+    refuseCrossSite(req, {
+      siteUrl: c.redirectUri,
+      siteTitle: siteTitle ?? new URL(c.redirectUri).host,
+    });
   /** The signed-in user, only when they exist in identity and aren't banned. */
   const activeUser = async (req: Request): Promise<ObjectId | null> => {
     const user = await currentUser(req);
@@ -95,7 +101,7 @@ export const createDiscordLinkRoutes = ({
   const land = (req: Request, outcome: DiscordLinkOutcome) => {
     const url = new URL(returnPath, req.url);
     url.searchParams.set("discord", outcome);
-    return redirect(url.href, CLEAR_COOKIE);
+    return redirect(url.href, clearCookie);
   };
 
   const start = async (req: Request): Promise<Response> => {
@@ -111,7 +117,7 @@ export const createDiscordLinkRoutes = ({
     if (!userId) return land(req, "error");
     const state = newDiscordState();
     const value = signDiscordState(secret, state, userId.toHexString(), now());
-    const cookie = `${DISCORD_STATE_COOKIE}=${value}; Max-Age=${DISCORD_STATE_TTL_SECONDS}; ${cookieAttributes}`;
+    const cookie = `${stateCookie}=${value}; Max-Age=${DISCORD_STATE_TTL_SECONDS}; ${cookieAttributes}`;
     return redirect(discordAuthorizeUrl(config, state), cookie);
   };
 
@@ -142,7 +148,7 @@ export const createDiscordLinkRoutes = ({
     const query = new URL(req.url).searchParams;
     const signedUser = verifyDiscordState(
       secret,
-      readCookie(req.headers, DISCORD_STATE_COOKIE),
+      readCookie(req.headers, stateCookie),
       query.get("state"),
       now(),
     );

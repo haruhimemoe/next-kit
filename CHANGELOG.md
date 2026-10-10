@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-10-10
+
+### Changed
+
+- `createDiscordLinkRoutes`'s `siteTitle` defaults to the redirect URI's host instead of "haruhime.moe", so another app's 403 names that app. The README shows passing your own `Organization` instead of `HARUHIME_ORG`.
+
+### Added
+
+- `createDiscordLinkRoutes` takes `stateCookie`, the state cookie's name (default `DISCORD_STATE_COOKIE`).
+
 ## [0.16.1] - 2026-10-10
 
 ### Fixed
@@ -193,7 +203,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `@haruhimemoe/next-kit/auth-react`: `createSignedInMarker`, `createAccountStore`, `useAccount`, `createAccount`, `RestoreSignedIn` and `osuSignIn`.
 - `@haruhimemoe/next-kit/testing`: `startMemoryMongo`, `setupTestDb`, `setupMsw` and the fake osu! app env.
 
-[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.16.1...HEAD
+[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/haruhimemoe/next-kit/compare/v0.16.1...v0.17.0
 [0.16.1]: https://github.com/haruhimemoe/next-kit/compare/v0.16.0...v0.16.1
 [0.10.0]: https://github.com/haruhimemoe/next-kit/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/haruhimemoe/next-kit/compare/v0.8.0...v0.9.0

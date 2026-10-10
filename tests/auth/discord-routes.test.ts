@@ -6,7 +6,7 @@
  *       hostile returnPath, Discord errors, and unlink.
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Sat Oct 10, 2026
  */
 
 import type { Db } from "mongodb";
@@ -110,6 +110,25 @@ describe("start", () => {
     expect((await routes.start(get)).status).toBe(405);
     const foreign = post("/api/account/discord/start", { origin: "https://evil.example" });
     expect((await routes.start(foreign)).status).toBe(403);
+  });
+
+  it("names the redirect URI's host in the 403 when no siteTitle is given", async () => {
+    const foreign = post("/api/account/discord/start", { origin: "https://evil.example" });
+    const body = await (await routes.start(foreign)).json();
+    expect(JSON.stringify(body)).toContain("www.haruhime.moe");
+    const elsewhere = createDiscordLinkRoutes({
+      ...options,
+      config: { ...config, redirectUri: "https://example.org/api/discord/callback" },
+    });
+    const other = await (await elsewhere.start(foreign)).json();
+    expect(JSON.stringify(other)).toContain("example.org");
+    expect(JSON.stringify(other)).not.toContain("haruhime");
+  });
+
+  it("uses the state cookie name it's given", async () => {
+    const named = createDiscordLinkRoutes({ ...options, stateCookie: "myapp-discord-state" });
+    const response = await named.start(post("/api/account/discord/start"));
+    expect(response.headers.get("set-cookie")).toMatch(/^myapp-discord-state=/);
   });
 
   it("refuses a banned user", async () => {
