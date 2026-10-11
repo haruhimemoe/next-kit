@@ -141,7 +141,7 @@
   },
   "peerDependencies": {
     "@haruhimemoe/osu": "^0.2.0 || ^0.3.0 || ^0.4.0 || ^0.5.0 || ^0.6.0 || ^0.7.0",
-    "@haruhimemoe/ui": ">=0.14.0 <0.26.0",
+    "@haruhimemoe/ui": ">=0.14.0 <0.27.0",
     "@haruhimemoe/vcs": "^0.1.0",
     "better-auth": "^1.7.5",
     "mongodb": "^7.6.0",
@@ -195,7 +195,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
     "@haruhimemoe/osu": "0.7.0",
-    "@haruhimemoe/ui": "0.25.0",
+    "@haruhimemoe/ui": "0.26.0",
     "@haruhimemoe/vcs": "0.1.0",
     "@testing-library/dom": "10.4.2",
     "@testing-library/react": "16.3.3",

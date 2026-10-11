@@ -40,7 +40,12 @@ export {
   createAuthComponents,
 } from "./auth-components.js";
 export { OSU_AVATAR_HOSTS, osuAvatarSrc } from "./avatar.js";
-export { DeleteAccountForm, type DeleteAccountFormProps } from "./DeleteAccountForm.js";
+export {
+  DELETE_ACCOUNT_LABELS,
+  DeleteAccountForm,
+  type DeleteAccountFormProps,
+  type DeleteAccountLabels,
+} from "./DeleteAccountForm.js";
 export {
   createSignedInMarker,
   markerMaxAge,

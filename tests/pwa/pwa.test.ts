@@ -109,6 +109,13 @@ describe("offlineHtml", () => {
     expect(html).toContain(`background:${surfaceColor(POOLS)}`);
   });
 
+  it("takes the retry text and lang", () => {
+    const html = offlineHtml(POOLS, { version: "1", offlineRetry: "再試行", lang: "ja" });
+    expect(html).toContain('<html lang="ja">');
+    expect(html).toContain(">再試行</button>");
+    expect(offlineHtml(POOLS, { version: "1" })).toContain('<html lang="en">');
+  });
+
   it("uses the given message and the light scheme", () => {
     const html = offlineHtml(
       { ...POOLS, scheme: "light" },

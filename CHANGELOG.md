@@ -11,6 +11,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - `i18n/next-intl`: prefix-less locales. `createRequestConfig` takes `request`, and the new `readRequestLocale` reads the `NEXT_LOCALE` cookie and Accept-Language through `next/headers`. With no matched segment the locale is the cookie, then `userLocale()`, then the best Accept-Language match, then the default. No `[locale]` folder or middleware needed.
+- `i18n`: `uiLabels(t)` builds ui's and next-kit's built-in text from a translator for the `ui` namespace of `@haruhimemoe/messages`.
+- `DeleteAccountForm` takes `labels` (`DELETE_ACCOUNT_LABELS`) for every string it writes, including the type-to-confirm label.
+- `serviceWorkerResponse` takes `offlineRetry` and `lang` for the offline page.
+
+### Changed
+
+- The `@haruhimemoe/ui` peer range now includes 0.26.
 
 ## [0.18.0] - 2026-10-11
 

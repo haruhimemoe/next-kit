@@ -7,7 +7,7 @@
  *       is ever cached, so nothing signed in goes stale. A new version drops the old caches.
  * @author David @dvhsh (https://dvh.sh)
  * @created Fri Oct 9, 2026
- * @modified Fri Oct 9, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { type PwaApp, surfaceColor, textColor } from "./app.js";
@@ -20,6 +20,10 @@ export type ServiceWorkerOptions = {
   offlineTitle?: string;
   /** The offline page's line under it. */
   offlineMessage?: string;
+  /** The offline page's reload button (default "Try again"). */
+  offlineRetry?: string;
+  /** The offline page's `lang` (default "en"). */
+  lang?: string;
 };
 
 const escapeHtml = (text: string): string =>
@@ -42,7 +46,7 @@ export const offlineHtml = (app: PwaApp, options: ServiceWorkerOptions): string 
     options.offlineMessage ??
       `${app.shortName} needs a connection for this page. Try again once you're back online.`,
   );
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="${app.scheme ?? "dark"}"><title>${title} · ${escapeHtml(app.shortName)}</title><style>body{margin:0;min-height:100dvh;display:grid;place-items:center;background:${bg};color:${fg};font:16px/1.5 system-ui,sans-serif;padding:16px;box-sizing:border-box;text-align:center}main{max-width:28rem}h1{font-size:1.5rem;margin:0 0 .5rem}p{margin:0 0 1.5rem;opacity:.8}button{font:inherit;font-weight:700;color:inherit;background:transparent;border:2px solid currentColor;border-radius:999px;min-height:44px;padding:0 1.25rem;cursor:pointer}</style></head><body><main><h1>${title}</h1><p>${message}</p><button type="button" onclick="location.reload()">Try again</button></main></body></html>`;
+  return `<!doctype html><html lang="${escapeHtml(options.lang ?? "en")}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="${app.scheme ?? "dark"}"><title>${title} · ${escapeHtml(app.shortName)}</title><style>body{margin:0;min-height:100dvh;display:grid;place-items:center;background:${bg};color:${fg};font:16px/1.5 system-ui,sans-serif;padding:16px;box-sizing:border-box;text-align:center}main{max-width:28rem}h1{font-size:1.5rem;margin:0 0 .5rem}p{margin:0 0 1.5rem;opacity:.8}button{font:inherit;font-weight:700;color:inherit;background:transparent;border:2px solid currentColor;border-radius:999px;min-height:44px;padding:0 1.25rem;cursor:pointer}</style></head><body><main><h1>${title}</h1><p>${message}</p><button type="button" onclick="location.reload()">${escapeHtml(options.offlineRetry ?? "Try again")}</button></main></body></html>`;
 };
 
 /**

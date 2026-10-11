@@ -10,7 +10,7 @@
  *       Moved from pools and bb (src/components/account/DeleteAccountForm.tsx).
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Oct 5, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 "use client";
@@ -18,6 +18,32 @@
 import { buttonClasses, ConfirmDialog } from "@haruhimemoe/ui";
 import { useRouter } from "next/navigation.js";
 import { type ReactNode, useId, useState } from "react";
+
+/** DeleteAccountForm's built-in text. */
+export type DeleteAccountLabels = {
+  trigger: string;
+  title: string;
+  confirm: string;
+  pending: string;
+  /** The type-to-confirm field's label from the username. */
+  typeToConfirm: (username: string) => string;
+  /** Before the server's notice once the account is gone. */
+  deleted: string;
+  unreachable: (appName: string) => string;
+  failed: (status: number) => string;
+};
+
+/** The English defaults. */
+export const DELETE_ACCOUNT_LABELS: DeleteAccountLabels = {
+  trigger: "Delete my account",
+  title: "Delete your account?",
+  confirm: "Delete for good",
+  pending: "Deleting…",
+  typeToConfirm: (username) => `Type ${username} to confirm`,
+  deleted: "Your account is deleted.",
+  unreachable: (appName) => `Couldn't reach ${appName}. Your account is still there.`,
+  failed: (status) => `Deleting failed (${status}).`,
+};
 
 /** DeleteAccountForm's props. */
 export type DeleteAccountFormProps = {
@@ -35,12 +61,14 @@ export type DeleteAccountFormProps = {
   homeHref?: string | undefined;
   /** The link home's text once deleted (default "Go to the home page"). */
   homeLabel?: ReactNode;
+  /** Built-in text, merged over DELETE_ACCOUNT_LABELS. */
+  labels?: Partial<DeleteAccountLabels> | undefined;
   /** Test seam (default: fetch). */
   fetcher?: typeof fetch | undefined;
 };
 
-const messageOf = async (response: Response): Promise<string> => {
-  const fallback = `Deleting failed (${response.status}).`;
+const messageOf = async (response: Response, labels: DeleteAccountLabels): Promise<string> => {
+  const fallback = labels.failed(response.status);
   try {
     const body = (await response.json()) as { error?: { message?: string } };
     return body.error?.message ?? fallback;
@@ -64,12 +92,14 @@ export function DeleteAccountForm({
   homeHref = "/",
   homeLabel = "Go to the home page",
   fetcher = fetch,
+  labels: labelsProp,
 }: DeleteAccountFormProps): ReactNode {
+  const labels = { ...DELETE_ACCOUNT_LABELS, ...labelsProp };
   const router = useRouter();
   const doneId = `${useId()}-done`;
   // Once it's gone: what more to say. The button doesn't come back, so no second delete.
   const [done, setDone] = useState<string | null>(null);
-  const unreachable = `Couldn't reach ${appName}. Your account is still there.`;
+  const unreachable = labels.unreachable(appName);
   // Throws to keep the dialog open with what went wrong.
   const remove = async () => {
     let response: Response;
@@ -82,7 +112,7 @@ export function DeleteAccountForm({
     } catch {
       throw new Error(unreachable);
     }
-    if (!response.ok) throw new Error(await messageOf(response));
+    if (!response.ok) throw new Error(await messageOf(response, labels));
     onDeleted();
     if (response.status === 204) {
       setDone("");
@@ -96,7 +126,7 @@ export function DeleteAccountForm({
     return (
       <div className="flex flex-col gap-3">
         <p id={doneId} role="status" tabIndex={-1} className="text-c2 text-sm outline-none">
-          {`Your account is deleted. ${done}`.trim()}
+          {`${labels.deleted} ${done}`.trim()}
         </p>
         {/* A full load home: nothing of the deleted account stays in the page. */}
         <a href={homeHref} className={buttonClasses({ variant: "secondary" })}>
@@ -107,14 +137,14 @@ export function DeleteAccountForm({
   }
   return (
     <ConfirmDialog
-      trigger="Delete my account"
+      trigger={labels.trigger}
       triggerProps={{ variant: "danger" }}
-      title="Delete your account?"
+      title={labels.title}
       description={deletes}
       tone="destructive"
-      typeToConfirm={username}
-      confirmLabel="Delete for good"
-      pendingLabel="Deleting…"
+      typeToConfirm={{ expected: username, label: labels.typeToConfirm(username) }}
+      confirmLabel={labels.confirm}
+      pendingLabel={labels.pending}
       failedMessage={(error) => (error instanceof Error ? error.message : unreachable)}
       returnFocus={() => document.getElementById(doneId)}
       onConfirm={remove}

@@ -221,3 +221,41 @@ describe("createAuthComponents", () => {
     expect(kit.markSignedOut).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("DeleteAccountForm labels", () => {
+  it("writes the trigger, dialog, field, result and failures in the given words", async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("{}", { status: 500 }))
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce(Response.json({ notice: "Bye." }));
+    render(
+      <DeleteAccountForm
+        username="peppy"
+        appName="pools"
+        deletes="Gone."
+        onDeleted={vi.fn()}
+        fetcher={fetcher}
+        labels={{
+          trigger: "削除",
+          title: "削除しますか？",
+          confirm: "完全に削除",
+          typeToConfirm: (name) => `${name}と入力`,
+          deleted: "削除しました。",
+          unreachable: (app) => `${app}に届きません`,
+          failed: (status) => `失敗 (${status})`,
+        }}
+      />,
+    );
+    await act(async () => clickTrigger("削除"));
+    expect(screen.getByRole("alertdialog", { name: "削除しますか？" })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("peppyと入力"), { target: { value: "peppy" } });
+    const confirm = () => screen.getByRole("button", { name: "完全に削除" });
+    await act(async () => fireEvent.click(confirm()));
+    expect(await screen.findByText("失敗 (500)")).toBeTruthy();
+    await act(async () => fireEvent.click(confirm()));
+    expect(await screen.findByText("poolsに届きません")).toBeTruthy();
+    await act(async () => fireEvent.click(confirm()));
+    expect(await screen.findByText("削除しました。 Bye.")).toBeTruthy();
+  });
+});

@@ -307,6 +307,7 @@ it("exports the documented auth-react API", () => {
     [
       "AccountMenu",
       "DEFAULT_SIGN_IN_PATH",
+      "DELETE_ACCOUNT_LABELS",
       "DeleteAccountForm",
       "LOADING",
       "OSU_AVATAR_HOSTS",
@@ -496,6 +497,7 @@ it("exports the documented i18n API", () => {
     "DEFAULT_LOCALES",
     "hasLocale",
     "negotiateLocale",
+    "uiLabels",
   ]);
 });
 
