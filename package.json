@@ -104,8 +104,8 @@
       "default": "./dist/preferences/index.js"
     },
     "./preferences/server": {
-      "types": "./dist/preferences/server/index.d.ts",
-      "default": "./dist/preferences/server/index.js"
+      "types": "./dist/preferences/server.d.ts",
+      "default": "./dist/preferences/server.js"
     },
     "./check/migrate-identity": {
       "types": "./dist/check/migrate-identity.d.ts",

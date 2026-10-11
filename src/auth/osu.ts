@@ -17,9 +17,15 @@
  *       fields (packs' `system`) stay out of this list: they move to an app-side profile
  *       collection keyed by userId, since the identity user is shared across apps (CHANGELOG
  *       has packs' migration note).
+ *
+ *       preferences: IDENTITY_USER_FIELDS gains `preferences`, the serialized form of
+ *       @haruhimemoe/next-kit/preferences's Preferences (timezone, hourCycle). `input: false`
+ *       like every other identity field: a client never sets it through better-auth's own
+ *       field input, only through createPreferencesRoute's POST
+ *       (@haruhimemoe/next-kit/preferences/server).
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { OSU_OAUTH, OSU_SIGN_IN_SCOPES, toOsuUser } from "@haruhimemoe/osu/shapes";
@@ -37,8 +43,9 @@ export const OSU_USER_FIELDS = {
 
 /** The identity database's own fields (section 3 of the identity spec): never set by a
  * client, only by the server (an admin route, the Discord link flow, requireSession's read of
- * bannedAt). `limits` is a free-form per-app override bag, stored as JSON text since
- * better-auth's additionalFields has no object type. */
+ * bannedAt, createPreferencesRoute's POST). `limits` is a free-form per-app override bag,
+ * `preferences` the serialized Preferences; both stored as JSON text since better-auth's
+ * additionalFields has no object type. */
 export const IDENTITY_USER_FIELDS = {
   locale: { type: "string", required: false, input: false },
   notificationPrefs: { type: "string", required: false, input: false },
@@ -47,6 +54,7 @@ export const IDENTITY_USER_FIELDS = {
   limits: { type: "string", required: false, input: false },
   discordId: { type: "string", required: false, input: false },
   discordUsername: { type: "string", required: false, input: false },
+  preferences: { type: "string", required: false, input: false },
 } as const;
 
 /**

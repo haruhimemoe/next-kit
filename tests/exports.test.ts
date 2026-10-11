@@ -25,6 +25,7 @@ import * as inbox from "../src/inbox/index.js";
 import * as legal from "../src/legal/index.js";
 import * as mongo from "../src/mongo/index.js";
 import * as preferences from "../src/preferences/index.js";
+import * as preferencesServer from "../src/preferences/server.js";
 import * as pwa from "../src/pwa/index.js";
 import * as seo from "../src/seo/index.js";
 import * as server from "../src/server/index.js";
@@ -53,7 +54,10 @@ const ENTRIES = [
   "preferences",
 ];
 /** Non-index entry points: exports map to a specific file, not <entry>/index.js. */
-const EXTRA_ENTRIES = { "check/migrate-identity": "check/migrate-identity" };
+const EXTRA_ENTRIES = {
+  "check/migrate-identity": "check/migrate-identity",
+  "preferences/server": "preferences/server",
+};
 
 /** Every bare or node: module a src/ file loads at runtime, following relative imports. */
 const loads = (file: URL, seen = new Set<string>(), found = new Set<string>()) => {
@@ -502,5 +506,13 @@ it("exports the documented preferences API", () => {
     "formatInstant",
     "parsePreferences",
     "serializePreferences",
+  ]);
+});
+
+it("exports the documented preferences/server API", () => {
+  expect(Object.keys(preferencesServer).sort()).toEqual([
+    "createPreferencesRoute",
+    "readPreferences",
+    "writePreferences",
   ]);
 });

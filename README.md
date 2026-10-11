@@ -47,6 +47,7 @@ bun add @haruhimemoe/next-kit zod
 | `i18n` | nothing else |
 | `i18n/next-intl` | `next-intl` ^4.14.0, `next` ^16.3.6 |
 | `preferences` | nothing else |
+| `preferences/server` | `mongodb` ^7.6.0 |
 
 ## Use
 
@@ -522,6 +523,16 @@ Who may read a history, and the routes around it, stay the app's.
 | `parsePreferences(raw)` | The stored string back to `Preferences`. Falls back to `DEFAULT_PREFERENCES` on junk, an unknown zone, or a missing value; never throws. |
 | `serializePreferences(p)` | `Preferences` to its stored string. |
 | `formatInstant(iso, { timeZone, hourCycle }, style?)` | An ISO instant as `"Tue, Nov 3, 15:00"` (`style: "time"`, the default) or `"Tue, Nov 3"` (`style: "day"`). `hourCycle: null` leaves the locale's own convention in charge. |
+
+### preferences/server
+
+A separate subpath from `preferences`: this one loads `mongodb`, so the pure, client-safe entry point never does.
+
+| Export | What it does |
+| --- | --- |
+| `readPreferences(db, userId)` | The identity user's stored preferences, or `DEFAULT_PREFERENCES` on no user, no stored value, or a value that doesn't parse. |
+| `writePreferences(db, userId, p)` | Writes only `preferences` (the serialized form) on that user row. |
+| `createPreferencesRoute({ db, getSession })` | `GET` and `POST` for the hub's preferences route. `GET` answers the caller's preferences (401 signed out). `POST` refuses a signed-out caller (401) and a cross-site request (403, `refuseCrossSite`), 400s a schema failure (an unknown zone), otherwise writes and answers the stored preferences. Every answer is no-store. |
 
 ## PWA (0.16)
 

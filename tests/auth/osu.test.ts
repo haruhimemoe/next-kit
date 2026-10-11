@@ -5,7 +5,7 @@
  *       db-indexes.test.ts: every index built, and each unique one holds).
  * @author David @dvhsh (https://dvh.sh)
  * @created Mon Sep 28, 2026
- * @modified Mon Sep 28, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { ObjectId } from "mongodb";
@@ -146,6 +146,7 @@ describe("IDENTITY_USER_FIELDS", () => {
       "limits",
       "discordId",
       "discordUsername",
+      "preferences",
     ]);
     expect(Object.values(IDENTITY_USER_FIELDS).every((field) => field.input === false)).toBe(true);
     expect(IDENTITY_USER_FIELDS.bannedAt.type).toBe("date");
