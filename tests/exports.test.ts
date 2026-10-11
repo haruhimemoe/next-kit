@@ -24,6 +24,7 @@ import * as i18n from "../src/i18n/index.js";
 import * as inbox from "../src/inbox/index.js";
 import * as legal from "../src/legal/index.js";
 import * as mongo from "../src/mongo/index.js";
+import * as preferences from "../src/preferences/index.js";
 import * as pwa from "../src/pwa/index.js";
 import * as seo from "../src/seo/index.js";
 import * as server from "../src/server/index.js";
@@ -49,6 +50,7 @@ const ENTRIES = [
   "i18n",
   "i18n/next-intl",
   "pwa",
+  "preferences",
 ];
 /** Non-index entry points: exports map to a specific file, not <entry>/index.js. */
 const EXTRA_ENTRIES = { "check/migrate-identity": "check/migrate-identity" };
@@ -118,6 +120,10 @@ it("exports the documented pwa API", () => {
     "surfaceColor",
     "textColor",
   ]);
+});
+
+it("keeps the preferences entry point pure (zod, no mongo or better-auth)", () => {
+  expect([...loads(new URL("../src/preferences/index.ts", import.meta.url))]).toEqual(["zod"]);
 });
 
 it("keeps the seo entry point free of runtime imports (Next's types only)", () => {
@@ -486,5 +492,15 @@ it("exports the documented i18n API", () => {
     "DEFAULT_LOCALES",
     "hasLocale",
     "negotiateLocale",
+  ]);
+});
+
+it("exports the documented preferences API", () => {
+  expect(Object.keys(preferences).sort()).toEqual([
+    "DEFAULT_PREFERENCES",
+    "PreferencesSchema",
+    "formatInstant",
+    "parsePreferences",
+    "serializePreferences",
   ]);
 });

@@ -99,6 +99,14 @@
       "types": "./dist/pwa/index.d.ts",
       "default": "./dist/pwa/index.js"
     },
+    "./preferences": {
+      "types": "./dist/preferences/index.d.ts",
+      "default": "./dist/preferences/index.js"
+    },
+    "./preferences/server": {
+      "types": "./dist/preferences/server/index.d.ts",
+      "default": "./dist/preferences/server/index.js"
+    },
     "./check/migrate-identity": {
       "types": "./dist/check/migrate-identity.d.ts",
       "default": "./dist/check/migrate-identity.js"

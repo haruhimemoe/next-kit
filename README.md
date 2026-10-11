@@ -46,6 +46,7 @@ bun add @haruhimemoe/next-kit zod
 | `vcs` | `mongodb` ^7.6.0, `@haruhimemoe/vcs` ^0.1.0 |
 | `i18n` | nothing else |
 | `i18n/next-intl` | `next-intl` ^4.14.0, `next` ^16.3.6 |
+| `preferences` | nothing else |
 
 ## Use
 
@@ -511,6 +512,16 @@ Who may read a history, and the routes around it, stay the app's.
 | `serviceWorkerScript`, `offlineHtml` | The script and the offline page on their own. |
 | `ServiceWorkerRegister({ src?, enabled? })` | Registers `/sw.js` after load, in production builds only. Renders nothing. |
 | `surfaceColor(app)`, `textColor(app)`, `hslHex(h, s, l)` | The ui theme's b5 and c1 at the app's hue, as hex. |
+
+### preferences
+
+| Export | What it does |
+| --- | --- |
+| `Preferences`, `PreferencesSchema` | `{ timezone: string \| null; hourCycle: "h12" \| "h23" \| null }`. `null` means "use the browser's". |
+| `DEFAULT_PREFERENCES` | `{ timezone: null, hourCycle: null }`. |
+| `parsePreferences(raw)` | The stored string back to `Preferences`. Falls back to `DEFAULT_PREFERENCES` on junk, an unknown zone, or a missing value; never throws. |
+| `serializePreferences(p)` | `Preferences` to its stored string. |
+| `formatInstant(iso, { timeZone, hourCycle }, style?)` | An ISO instant as `"Tue, Nov 3, 15:00"` (`style: "time"`, the default) or `"Tue, Nov 3"` (`style: "day"`). `hourCycle: null` leaves the locale's own convention in charge. |
 
 ## PWA (0.16)
 
