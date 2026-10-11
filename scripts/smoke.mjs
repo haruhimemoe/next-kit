@@ -19,6 +19,7 @@ import * as i18n from "../dist/i18n/index.js";
 import * as inbox from "../dist/inbox/index.js";
 import * as legal from "../dist/legal/index.js";
 import * as mongo from "../dist/mongo/index.js";
+import * as preferences from "../dist/preferences/index.js";
 import * as seo from "../dist/seo/index.js";
 import * as server from "../dist/server/index.js";
 import * as vcs from "../dist/vcs/index.js";
@@ -41,7 +42,18 @@ const ENTRIES = [
   "i18n",
   // Exists only: next-intl imports "next/server" bare, which plain Node refuses (Next resolves it).
   "i18n/next-intl",
+  "pwa",
+  "preferences",
 ];
+// preferences/server loads mongodb at module scope, so it's checked for existence only, not
+// imported and called here (every other ENTRIES check is a static file check too, this one just
+// has no matching import above since there's nothing pure to call without a live Db).
+for (const file of ["server.js", "server.d.ts"]) {
+  assert.ok(
+    existsSync(new URL(`../dist/preferences/${file}`, import.meta.url)),
+    `preferences/${file}`,
+  );
+}
 for (const entry of ENTRIES) {
   for (const file of ["index.js", "index.d.ts"]) {
     assert.ok(existsSync(new URL(`../dist/${entry}/${file}`, import.meta.url)), `${entry} ${file}`);
@@ -145,4 +157,10 @@ assert.equal(
   seo.hreflangAlternates(locales, "/a", "https://x.test")["x-default"],
   "https://x.test/a",
 );
+assert.deepEqual(preferences.parsePreferences(undefined), preferences.DEFAULT_PREFERENCES);
+assert.equal(
+  preferences.formatInstant("2026-11-03T15:00:00Z", { timeZone: "UTC", hourCycle: "h23" }),
+  "Tue, Nov 3, 15:00",
+);
+
 console.log("smoke: ok");

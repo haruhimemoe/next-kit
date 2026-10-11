@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-10-11
+
+### Added
+
+- `preferences` (new subpath, no runtime imports besides `zod`): `PreferencesSchema` and `Preferences` (a time zone, or null for "use the browser's", and an hour cycle of `h12`, `h23`, or null to let the locale decide), `DEFAULT_PREFERENCES`, `parsePreferences` (never throws: a bad stored value falls back to the default) and `serializePreferences`, plus `formatInstant` for turning an ISO instant into display text with those preferences applied.
+- `preferences/server` (new subpath, loads `mongodb`): `readPreferences` and `writePreferences` touch only the `preferences` field on the identity user, and `createPreferencesRoute({ db, getSession })` gives the hub a `GET`/`POST` route (`refuseCrossSite` first, then the session, then schema validation on POST).
+- `auth`'s `IDENTITY_USER_FIELDS` gains `preferences`, so every `createOsuAuth` instance's `additionalFields` carries it, single-DB apps included.
+
 ## [0.17.1] - 2026-10-10
 
 ### Changed
@@ -209,7 +217,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `@haruhimemoe/next-kit/auth-react`: `createSignedInMarker`, `createAccountStore`, `useAccount`, `createAccount`, `RestoreSignedIn` and `osuSignIn`.
 - `@haruhimemoe/next-kit/testing`: `startMemoryMongo`, `setupTestDb`, `setupMsw` and the fake osu! app env.
 
-[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.17.1...HEAD
+[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/haruhimemoe/next-kit/compare/v0.17.1...v0.18.0
 [0.17.1]: https://github.com/haruhimemoe/next-kit/compare/v0.17.0...v0.17.1
 [0.17.0]: https://github.com/haruhimemoe/next-kit/compare/v0.16.1...v0.17.0
 [0.16.1]: https://github.com/haruhimemoe/next-kit/compare/v0.16.0...v0.16.1

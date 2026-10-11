@@ -746,6 +746,32 @@ await hub.notify({ userId, kind: "invite", title: "You were invited to a team", 
 - Notifications expire after 90 days. `buildIdentityIndexes` builds the inbox indexes.
 - On account delete, call `inbox.deleteFor(userId, osuId)`.
 
+## Preferences (0.18)
+
+A user's display preferences: a time zone (or null to use the browser's) and an hour cycle (`h12`, `h23`, or null to let the locale decide). The hub stores one `preferences` field on the identity user; apps read it with `preferences/server` and render dates with the pure `preferences` subpath, which stays client-safe.
+
+```ts
+// hub: app/api/account/preferences/route.ts
+export const { GET, POST } = createPreferencesRoute({
+  db: getIdentityDb(),
+  getSession: (req) => getSessionUser(getAuth(), req.headers),
+});
+```
+
+```ts
+// any app, on the server
+import { readPreferences } from "@haruhimemoe/next-kit/preferences/server";
+const prefs = await readPreferences(getIdentityDb(), user.id);
+
+// in a client component
+import { formatInstant } from "@haruhimemoe/next-kit/preferences";
+formatInstant(entry.createdAt, { timeZone: prefs.timezone ?? browserZone, hourCycle: prefs.hourCycle });
+```
+
+- `preferences/server` is the only subpath here that loads `mongodb`. `preferences` has no runtime imports besides `zod`, so it's safe in a browser bundle.
+- `parsePreferences` never throws: a missing field, an unparseable string, or an unknown zone all fall back to `DEFAULT_PREFERENCES`, so a bad stored value never breaks a render.
+- POST to the hub's route is behind `refuseCrossSite`, same as the Discord link and account routes above.
+
 ## Migration
 
 Both apps can drop their copies for the subpaths above. Where the copies differed, this package keeps pools.haruhime.moe's behavior. What changes for packs.haruhime.moe:
