@@ -223,7 +223,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `@haruhimemoe/next-kit/auth-react`: `createSignedInMarker`, `createAccountStore`, `useAccount`, `createAccount`, `RestoreSignedIn` and `osuSignIn`.
 - `@haruhimemoe/next-kit/testing`: `startMemoryMongo`, `setupTestDb`, `setupMsw` and the fake osu! app env.
 
-[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.18.0...HEAD
+[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.19.0...HEAD
 [0.19.0]: https://github.com/haruhimemoe/next-kit/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/haruhimemoe/next-kit/compare/v0.17.1...v0.18.0
 [0.17.1]: https://github.com/haruhimemoe/next-kit/compare/v0.17.0...v0.17.1
