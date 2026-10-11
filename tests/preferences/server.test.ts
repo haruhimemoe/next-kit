@@ -4,6 +4,11 @@
  *       MongoDB: the writer touches only `preferences` on identity.user, the reader falls back
  *       to defaults on a bad stored value, and the route refuses a signed-out POST, a
  *       cross-site POST and a schema failure, same as every other hub write.
+ *
+ *       review fix round 1: writePreferences guards a malformed userId (throws TypeError
+ *       instead of letting the MongoDB driver throw on `new ObjectId(...)`), POST answers 401
+ *       instead of throwing for a malformed session user id, and POST checks cross-site before
+ *       the session (discord-routes.ts's order), so a signed-out cross-site POST is 403.
  * @author David @dvhsh (https://dvh.sh)
  * @created Sun Oct 11, 2026
  * @modified Sun Oct 11, 2026
@@ -49,6 +54,12 @@ describe("readPreferences / writePreferences", () => {
       hourCycle: null,
     });
   });
+
+  it("guards a malformed userId instead of letting the driver throw", async () => {
+    await expect(
+      writePreferences(db(), "not-an-id", { timezone: "UTC", hourCycle: null }),
+    ).rejects.toThrow(TypeError);
+  });
 });
 
 describe("createPreferencesRoute", () => {
@@ -84,6 +95,23 @@ describe("createPreferencesRoute", () => {
       403,
     );
     expect((await signedIn.POST(req({ timezone: "Mars/Base", hourCycle: null }))).status).toBe(400);
+  });
+
+  it("POST answers a clean 401 for a malformed session user id, never a 500", async () => {
+    const malformed = createPreferencesRoute({
+      db: db(),
+      getSession: async () => ({ user: { id: "not-an-id" } }),
+    });
+    const response = await malformed.POST(req({ timezone: "UTC", hourCycle: null }));
+    expect(response.status).toBe(401);
+  });
+
+  it("POST checks cross-site before the session: signed out + cross-site is 403", async () => {
+    const signedOut = createPreferencesRoute({ db: db(), getSession: async () => null });
+    const response = await signedOut.POST(
+      req({ timezone: "UTC", hourCycle: null }, "https://evil.example"),
+    );
+    expect(response.status).toBe(403);
   });
 
   it("POST writes valid preferences and answers them", async () => {

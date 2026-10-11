@@ -4,9 +4,15 @@
  *       the identity database, and the hub's route. readPreferences/writePreferences touch only
  *       the `preferences` field on identity.user (never another field), the same shape
  *       discord-routes.ts writes discordId/discordUsername with. createPreferencesRoute's POST
- *       sits behind refuseCrossSite like every other hub write: 401 signed out, 403 cross-site,
- *       400 on a schema failure (an unknown zone, say). A separate subpath from ./preferences on
+ *       sits behind refuseCrossSite like every other hub write, checked first (same order as
+ *       discord-routes.ts): 403 cross-site, 401 signed out or a malformed session user id, 400
+ *       on a schema failure (an unknown zone, say). A separate subpath from ./preferences on
  *       purpose: this one loads mongodb, so the pure, client-safe entry point never does.
+ *
+ *       review fix round 1: writePreferences now guards userId with ObjectId.isValid, same as
+ *       readPreferences, instead of letting a malformed id throw out of the MongoDB driver;
+ *       POST checks that guard (as 401, not a thrown error) and moved its refuseCrossSite check
+ *       ahead of the session check to match discord-routes.ts's order.
  * @author David @dvhsh (https://dvh.sh)
  * @created Sun Oct 11, 2026
  * @modified Sun Oct 11, 2026
@@ -51,9 +57,14 @@ export const readPreferences = async (db: Db, userId: string): Promise<Preferenc
  * @param userId {string} the identity user's id
  * @param p {Preferences} valid preferences to store
  * @returns {Promise<void>} writes only `preferences` on that user row
+ * @throws {TypeError} when userId isn't a valid ObjectId (same guard as readPreferences, but a
+ *         write has nothing sensible to fall back to, so it throws instead of silently no-op)
  * @throws {z.ZodError} when p doesn't match PreferencesSchema
  */
 export const writePreferences = async (db: Db, userId: string, p: Preferences): Promise<void> => {
+  if (!ObjectId.isValid(userId)) {
+    throw new TypeError("writePreferences: userId must be a valid ObjectId");
+  }
   await db
     .collection("user")
     .updateOne({ _id: new ObjectId(userId) }, { $set: { preferences: serializePreferences(p) } });
@@ -62,9 +73,10 @@ export const writePreferences = async (db: Db, userId: string, p: Preferences): 
 /**
  * @function createPreferencesRoute
  * @param options {PreferencesRouteOptions} the identity database and a session reader
- * @returns {{ GET; POST }} GET answers the caller's preferences (401 signed out); POST refuses
- *          cross-site and a signed-out caller, 400s a schema failure, otherwise writes and
- *          answers the stored preferences. Every answer is no-store.
+ * @returns {{ GET; POST }} GET answers the caller's preferences (401 signed out); POST checks
+ *          cross-site first (403), then a signed-out caller or a malformed session user id
+ *          (401), then 400s a schema failure, otherwise writes and answers the stored
+ *          preferences. Every answer is no-store.
  */
 export const createPreferencesRoute = ({ db, getSession }: PreferencesRouteOptions) => {
   const GET = async (req: Request): Promise<Response> => {
@@ -74,13 +86,15 @@ export const createPreferencesRoute = ({ db, getSession }: PreferencesRouteOptio
   };
 
   const POST = async (req: Request): Promise<Response> => {
-    const session = await getSession(req);
-    if (!session) return noStore(jsonError(401, "Sign in first."));
     const refused = refuseCrossSite(req, {
       siteUrl: new URL(req.url).origin,
       siteTitle: "this app",
     });
     if (refused) return noStore(refused);
+    const session = await getSession(req);
+    if (!session || !ObjectId.isValid(session.user.id)) {
+      return noStore(jsonError(401, "Sign in first."));
+    }
     let body: unknown;
     try {
       body = await req.json();
