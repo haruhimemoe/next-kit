@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `i18n/next-intl`: prefix-less locales. `createRequestConfig` takes `request`, and the new `readRequestLocale` reads the `NEXT_LOCALE` cookie and Accept-Language through `next/headers`. With no matched segment the locale is the cookie, then `userLocale()`, then the best Accept-Language match, then the default. No `[locale]` folder or middleware needed.
+
 ## [0.18.0] - 2026-10-11
 
 ### Added

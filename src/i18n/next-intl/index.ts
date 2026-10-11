@@ -14,5 +14,7 @@ export {
   type MessagesLoader,
   mergeMessages,
   type RequestConfigOptions,
+  type RequestLocaleHints,
+  readRequestLocale,
   resolveRequestConfig,
 } from "./request-config.js";

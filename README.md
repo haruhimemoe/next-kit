@@ -496,7 +496,7 @@ Who may read a history, and the routes around it, stay the app's.
 
 | Export | What it does |
 | --- | --- |
-| `createRequestConfig({ config, app, packages?, userLocale? })` | The default export for `i18n/request.ts`. Locale: the matched segment, then `userLocale()`, then the default. Messages: package catalogs in order, then the app's, merged deeply (later wins). |
+| `createRequestConfig({ config, app, packages?, userLocale?, request? })` | The default export for `i18n/request.ts`. Locale: the matched segment, then the `NEXT_LOCALE` cookie from `request()`, then `userLocale()`, then Accept-Language from `request()`, then the default. Messages: package catalogs in order, then the app's, merged deeply (later wins). |
 | `createI18nMiddleware({ config, cookieDomain?, next? })` | next-intl's middleware with the `"as-needed"` prefix and the `NEXT_LOCALE` cookie (on `cookieDomain` when set). A redirect is returned as is; otherwise `next(req, intlResponse)` runs (it may be async) and its Response wins, with next-intl's `Set-Cookie` copied onto it. |
 | `mergeMessages(...catalogs)`, `resolveRequestConfig(options, requested)` | The merge and the locale pick on their own. |
 
@@ -584,6 +584,13 @@ export default createRequestConfig({
 import { createI18nMiddleware } from "@haruhimemoe/next-kit/i18n/next-intl";
 export default createI18nMiddleware({ config: LOCALES, cookieDomain: ".haruhime.moe" });
 export const config = { matcher: ["/((?!api|_next|.*\\..*).*)"] };
+```
+
+Prefix-less (no `[locale]` folder, no middleware, URLs never change): pass `request: readRequestLocale` and skip `proxy.ts`. A language switcher sets the `NEXT_LOCALE` cookie (on `.haruhime.moe` to share it) and refreshes.
+
+```ts
+import { createRequestConfig, readRequestLocale } from "@haruhimemoe/next-kit/i18n/next-intl";
+export default createRequestConfig({ config: LOCALES, app, packages, request: readRequestLocale });
 ```
 
 - Write each loader as a literal `import()` so the bundler sees the catalogs.

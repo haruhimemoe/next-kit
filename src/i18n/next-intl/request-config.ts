@@ -1,16 +1,18 @@
 /**
  * @file src/i18n/next-intl/request-config.ts
  * @desc next-intl's request config for an app's i18n/request.ts: the locale (the matched
- *       segment, then the user's saved locale, then the default) and the messages, package
+ *       segment, then the NEXT_LOCALE cookie, then the user's saved locale, then Accept-Language,
+ *       then the default) and the messages, package
  *       catalogs first and the app's own last, merged deeply so later wins. Loaders are injected
  *       so the bundler sees each import("./messages/<locale>.json").
  * @author David @dvhsh (https://dvh.sh)
  * @created Tue Oct 6, 2026
- * @modified Tue Oct 6, 2026
+ * @modified Sun Oct 11, 2026
  */
 
 import { getRequestConfig } from "next-intl/server";
 import { hasLocale, type LocaleConfig } from "../locales.js";
+import { negotiateLocale } from "../negotiate.js";
 
 /** A message catalog: nested objects of strings. */
 export type Messages = Record<string, unknown>;
@@ -26,6 +28,28 @@ export type RequestConfigOptions = {
   packages?: readonly MessagesLoader[];
   /** The signed-in user's saved locale, used when no locale segment matched. */
   userLocale?: () => Promise<string | null>;
+  /**
+   * The request's NEXT_LOCALE cookie and Accept-Language header, for apps without locale
+   * segments (prefix-less routing). Pass readRequestLocale from this subpath.
+   */
+  request?: () => Promise<RequestLocaleHints>;
+};
+
+/** What a prefix-less app reads off the request to pick a locale. */
+export type RequestLocaleHints = { cookie: string | null; acceptLanguage: string | null };
+
+/**
+ * @function readRequestLocale
+ * @returns {Promise<RequestLocaleHints>} the NEXT_LOCALE cookie and Accept-Language header of
+ *          the current request, read through next/headers
+ */
+export const readRequestLocale = async (): Promise<RequestLocaleHints> => {
+  const { cookies, headers } = await import("next/headers.js");
+  const [jar, list] = await Promise.all([cookies(), headers()]);
+  return {
+    cookie: jar.get("NEXT_LOCALE")?.value ?? null,
+    acceptLanguage: list.get("accept-language"),
+  };
 };
 
 const isObject = (value: unknown): value is Messages =>
@@ -64,8 +88,13 @@ export const resolveRequestConfig = async (
   let locale = config.defaultLocale;
   if (hasLocale(config, requested)) locale = requested;
   else {
-    const saved = options.userLocale ? await options.userLocale() : null;
-    if (hasLocale(config, saved)) locale = saved;
+    const hints = options.request ? await options.request() : null;
+    const cookie = hints?.cookie;
+    if (hasLocale(config, cookie)) locale = cookie;
+    else {
+      const saved = options.userLocale ? await options.userLocale() : null;
+      locale = negotiateLocale(config, hints?.acceptLanguage ?? null, saved);
+    }
   }
   const loaders = [...(options.packages ?? []), options.app];
   const catalogs = await Promise.all(loaders.map((load) => load(locale)));
