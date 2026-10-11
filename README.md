@@ -587,7 +587,7 @@ export default createI18nMiddleware({ config: LOCALES, cookieDomain: ".haruhime.
 export const config = { matcher: ["/((?!api|_next|.*\\..*).*)"] };
 ```
 
-Prefix-less (no `[locale]` folder, no middleware, URLs never change): pass `request: readRequestLocale` and skip `proxy.ts`. A language switcher sets the `NEXT_LOCALE` cookie (on `.haruhime.moe` to share it) and refreshes.
+Prefix-less (no `[locale]` folder, no middleware, URLs never change): pass `request: readRequestLocale` and skip `proxy.ts`. With one locale nothing is read and pages stay static; reading the cookie makes pages dynamic once there are two. A language switcher (ui's `LocaleSelect`) sets the `NEXT_LOCALE` cookie (on `.haruhime.moe` to share it) and refreshes.
 
 ```ts
 import { createRequestConfig, readRequestLocale } from "@haruhimemoe/next-kit/i18n/next-intl";

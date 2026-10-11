@@ -125,3 +125,34 @@ it("readRequestLocale reads the cookie and header through next/headers", async (
   const { readRequestLocale } = await import("../../src/i18n/next-intl/index.js");
   expect(await readRequestLocale()).toEqual({ cookie: "ja", acceptLanguage: "ko" });
 });
+
+it("createRequestConfig leaves requestLocale unread when prefix-less or single-locale", async () => {
+  const read = vi.fn(() => Promise.resolve("ja"));
+  const params = {
+    get requestLocale() {
+      return read();
+    },
+  };
+  type Handler = (p: typeof params) => Promise<{ locale: string }>;
+  const prefixless = createRequestConfig({
+    ...options,
+    request: async () => ({ cookie: null, acceptLanguage: null }),
+  }) as unknown as Handler;
+  expect((await prefixless(params)).locale).toBe("en");
+  const single = createRequestConfig({
+    config: { locales: ["en"], defaultLocale: "en" },
+    app: options.app,
+  }) as unknown as Handler;
+  expect((await single(params)).locale).toBe("en");
+  expect(read).not.toHaveBeenCalled();
+  const routed = createRequestConfig(options) as unknown as Handler;
+  expect((await routed(params)).locale).toBe("ja");
+  expect(read).toHaveBeenCalledOnce();
+});
+
+it("resolveRequestConfig skips the request hints with one locale", async () => {
+  const request = vi.fn(async () => ({ cookie: "ja", acceptLanguage: "ja" }));
+  const single = { config: { locales: ["en"], defaultLocale: "en" }, app: options.app, request };
+  expect((await resolveRequestConfig(single, undefined)).locale).toBe("en");
+  expect(request).not.toHaveBeenCalled();
+});

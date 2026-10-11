@@ -88,7 +88,8 @@ export const resolveRequestConfig = async (
   let locale = config.defaultLocale;
   if (hasLocale(config, requested)) locale = requested;
   else {
-    const hints = options.request ? await options.request() : null;
+    // One locale: nothing to pick, and reading cookies would make the page dynamic.
+    const hints = options.request && config.locales.length > 1 ? await options.request() : null;
     const cookie = hints?.cookie;
     if (hasLocale(config, cookie)) locale = cookie;
     else {
@@ -104,7 +105,15 @@ export const resolveRequestConfig = async (
 /**
  * @function createRequestConfig
  * @param options {RequestConfigOptions} the app's locales and loaders
- * @returns the default export for the app's i18n/request.ts
+ * @returns the default export for the app's i18n/request.ts. With `request` set, or a single
+ *          locale, it never reads next-intl's requestLocale, so pages can stay static.
  */
 export const createRequestConfig = (options: RequestConfigOptions) =>
-  getRequestConfig(async ({ requestLocale }) => resolveRequestConfig(options, await requestLocale));
+  getRequestConfig(async (params) =>
+    // requestLocale is a getter that reads the request's headers, which makes every page
+    // dynamic. A prefix-less app (request set) or a one-locale app never needs it.
+    resolveRequestConfig(
+      options,
+      options.request || options.config.locales.length < 2 ? undefined : await params.requestLocale,
+    ),
+  );

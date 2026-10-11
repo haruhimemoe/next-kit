@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.19.1] - 2026-10-11
+
+### Fixed
+
+- `createRequestConfig` no longer reads next-intl's `requestLocale` when `request` is set or the app has one locale. Reading it touched the request headers, which made every page dynamic. With one locale it doesn't call `request` either, so an app can pass `readRequestLocale` before it has a second language and its pages stay static.
+
 ## [0.19.0] - 2026-10-11
 
 ### Added
@@ -230,7 +236,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `@haruhimemoe/next-kit/auth-react`: `createSignedInMarker`, `createAccountStore`, `useAccount`, `createAccount`, `RestoreSignedIn` and `osuSignIn`.
 - `@haruhimemoe/next-kit/testing`: `startMemoryMongo`, `setupTestDb`, `setupMsw` and the fake osu! app env.
 
-[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.19.0...HEAD
+[unreleased]: https://github.com/haruhimemoe/next-kit/compare/v0.19.1...HEAD
+[0.19.1]: https://github.com/haruhimemoe/next-kit/compare/v0.19.0...v0.19.1
 [0.19.0]: https://github.com/haruhimemoe/next-kit/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/haruhimemoe/next-kit/compare/v0.17.1...v0.18.0
 [0.17.1]: https://github.com/haruhimemoe/next-kit/compare/v0.17.0...v0.17.1
