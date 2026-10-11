@@ -38,6 +38,7 @@ describe("preferences", () => {
   it("formats with the hour cycle", () => {
     const at = "2026-11-03T15:00:00.000Z";
     expect(formatInstant(at, { timeZone: "UTC", hourCycle: "h23" })).toBe("Tue, Nov 3, 15:00");
+    expect(formatInstant(at, { timeZone: "UTC", hourCycle: "h23", locale: "ja" })).toMatch(/11月3日/);
     expect(formatInstant(at, { timeZone: "UTC", hourCycle: "h12" })).toBe("Tue, Nov 3, 03:00 PM");
     expect(formatInstant(at, { timeZone: "Asia/Tokyo", hourCycle: "h23" }, "day")).toBe(
       "Wed, Nov 4",

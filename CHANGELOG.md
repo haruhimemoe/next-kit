@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `preferences`: `formatInstant` takes `locale` in its prefs (default "en-US"), so times read in the page's language.
+
 ## [0.19.1] - 2026-10-11
 
 ### Fixed

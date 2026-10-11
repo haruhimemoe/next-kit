@@ -523,7 +523,7 @@ Who may read a history, and the routes around it, stay the app's.
 | `DEFAULT_PREFERENCES` | `{ timezone: null, hourCycle: null }`. |
 | `parsePreferences(raw)` | The stored string back to `Preferences`. Falls back to `DEFAULT_PREFERENCES` on junk, an unknown zone, or a missing value; never throws. |
 | `serializePreferences(p)` | `Preferences` to its stored string. |
-| `formatInstant(iso, { timeZone, hourCycle }, style?)` | An ISO instant as `"Tue, Nov 3, 15:00"` (`style: "time"`, the default) or `"Tue, Nov 3"` (`style: "day"`). `hourCycle: null` leaves the locale's own convention in charge. |
+| `formatInstant(iso, { timeZone, hourCycle, locale? }, style?)` | An ISO instant as `"Tue, Nov 3, 15:00"` (`style: "time"`, the default) or `"Tue, Nov 3"` (`style: "day"`). `hourCycle: null` leaves the locale's own convention in charge. `locale` (default `"en-US"`, since 0.20.0) picks the language. |
 
 ### preferences/server
 

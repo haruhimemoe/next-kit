@@ -9,7 +9,12 @@
  */
 
 /** What formatInstant needs: a resolved zone and an hour cycle (null: the locale's own). */
-export type FormatPrefs = { timeZone: string; hourCycle: "h12" | "h23" | null };
+export type FormatPrefs = {
+  timeZone: string;
+  hourCycle: "h12" | "h23" | null;
+  /** The page's locale for names and order (default "en-US"). */
+  locale?: string | undefined;
+};
 
 /**
  * @function formatInstant
@@ -23,7 +28,7 @@ export const formatInstant = (
   prefs: FormatPrefs,
   style: "time" | "day" = "time",
 ): string =>
-  new Intl.DateTimeFormat("en-US", {
+  new Intl.DateTimeFormat(prefs.locale ?? "en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
